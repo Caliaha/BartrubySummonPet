@@ -1,0 +1,13 @@
+## Interface: 50400
+## Title: BartrubySummonPet
+## Version: 1.00
+## Notes: Keeps a specific companion pet summoned per toon
+## Author: Bartruby of Cairne
+## OptionalDeps: Ace3
+## Dependencies: Blizzard_PetJournal
+## X-Embeds: Ace3
+## SavedVariables: BartrubySummonPetDB
+
+embeds.xml
+
+BartrubySummonPet.lua
