@@ -1,5 +1,8 @@
 BartrubySummonPet = LibStub("AceAddon-3.0"):NewAddon("BartrubySummonPet", "AceConsole-3.0", "AceEvent-3.0", "AceHook-3.0")
 
+local EXCLUDEDZONES = {}
+EXCLUDEDZONES["Proving Grounds"] = true
+
 function BartrubySummonPet:OnInitialize()
  local defaults = {
   global = {
@@ -100,6 +103,8 @@ function BartrubySummonPet:SummonPet()
  -- Things to check for: combat, casting, stealth, mounted, eating/drinking
  if (not self.db.char.enabled) then return end
  if (InCombatLockdown()) then return end
+ if (IsStealthed()) then return end
+ if (EXCLUDEDZONES[GetRealZoneText()]) then return end
  local id = self.db.char.battlepet
  local currentPet = C_PetJournal.GetSummonedPetGUID()
  if (currentPet == nil and id == nil) then return end
