@@ -7,6 +7,8 @@ function BartrubySummonPet:OnInitialize()
  local defaults = {
   global = {
    enabled = true,
+   x = 0,
+   y = 0,
   },
   char = {
    enabled = true,
@@ -15,15 +17,16 @@ function BartrubySummonPet:OnInitialize()
  }
 
  self.db = LibStub("AceDB-3.0"):New("BartrubySummonPetDB", defaults, true)
- --self.db.RegisterCallback(self, "OnProfileChanged", "DBChange")
- --self.db.RegisterCallback(self, "OnProfileCopied", "DBChange")
- --self.db.RegisterCallback(self, "OnProfileReset", "DBChange")
+ self.db.RegisterCallback(self, "OnProfileChanged", "DBChange")
+ self.db.RegisterCallback(self, "OnProfileCopied", "DBChange")
+ self.db.RegisterCallback(self, "OnProfileReset", "DBChange")
  
+ self:RegisterChatCommand("bartrubysummonpet","HandleIt")
  self:RegisterEvent("PET_JOURNAL_LIST_UPDATE", "PlaceIcon")
  -- May need to register UPDATE_SUMMONPETS_ACTION
  
  local frame = CreateFrame("Frame", nil, PetJournal)
- frame:SetPoint("TOPLEFT", PetJournal, "TOPRIGHT", 0, 0)
+ frame:SetPoint("TOPLEFT", PetJournal, "TOPRIGHT", self.db.global.x, self.db.global.y)
  frame:SetWidth(64)
  frame:SetHeight(64)
  --[[frame:SetBackdrop({bgFile = "Interface/Tooltips/UI-Tooltip-Background", 
@@ -43,8 +46,11 @@ function BartrubySummonPet:OnInitialize()
  frame:RegisterEvent("OnMouseUp")
  frame:SetScript("OnShow", function(self) BartrubySummonPet:PlaceIcon() end)
  frame:SetScript("OnReceiveDrag", function(self) BartrubySummonPet:CheckCursor(nil) end)
- frame:SetScript("OnMouseUp", function(self, button) BartrubySummonPet:CheckCursor(button) end)
+ frame:SetScript("OnMouseUp", function(self, button) BartrubySummonPet:CheckCursor(button); BartrubySummonPet:DragStop(self, button) end)
+ frame:SetScript("OnMouseDown", function(self, button) BartrubySummonPet:DragStart(self, button) end)
+ frame:SetMovable(true)
  frame:EnableMouse(true)
+ frame:SetFrameStrata("FULLSCREEN")
  frame:Show()
  self.bpFrame = frame 
 end
@@ -57,6 +63,23 @@ end
 function BartrubySummonPet:OnDisable()
  self:UnregisterAllEvents()
  self.bpFrame:Hide()
+end
+
+function BartrubySummonPet:DBChange()
+ self.bpFrame:SetPoint("TOPLEFT", PetJournal, "TOPRIGHT", self.db.global.x, self.db.global.y)
+end
+
+function BartrubySummonPet:HandleIt(input)
+ if not input then return end
+
+ local command, nextposition = self:GetArgs(input,1,1)
+
+ if (command == "reset") then
+  self.db.global.x = 0
+  self.db.global.y = 0
+  self:DBChange()
+  return
+ end
 end
 
 function BartrubySummonPet:CheckCursor(button)
@@ -110,4 +133,35 @@ function BartrubySummonPet:SummonPet()
  if (currentPet == nil and id == nil) then return end
  if (currentPet ~= nil and id == nil) then C_PetJournal.SummonPetByGUID(currentPet) end
  if (currentPet ~= id and id ~= nil) then C_PetJournal.SummonPetByGUID(id) end
+end
+
+local xB = 0
+local yB = 0
+function BartrubySummonPet:DragStart(frame, button)
+ if (button == "LeftButton" and IsShiftKeyDown() and not frame.isMoving) then
+  frame.isMoving = true
+  frame:StartMoving()
+  local _, _, _, x, y = frame:GetPoint()
+  xB = x
+  yB = y
+  --self:Print(xB, yB)
+ end
+end
+
+function BartrubySummonPet:DragStop(frame, button)
+ if (button == "LeftButton" and frame.isMoving == true) then
+  frame.isMoving = false
+  --self.db.global.x = frame:GetLeft()
+  --self.db.global.y = frame:GetTop()
+  local _, _, _, x, y = frame:GetPoint()
+  frame:StopMovingOrSizing()
+  --self:Print(x, y)
+  local xDelta = x - xB
+  local yDelta = y - yB
+  --self:Print(xDelta, yDelta)
+  self.db.global.x = xDelta + self.db.global.x
+  self.db.global.y = yDelta + self.db.global.y
+  --self:Print(self.db.global.x, self.db.global.y)
+  self:DBChange()
+ end
 end
