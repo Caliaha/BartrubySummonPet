@@ -13,6 +13,12 @@ function BartrubySummonPet:OnInitialize()
   char = {
    enabled = true,
    battlepet = nil,
+   multispecs = false,
+   specs = {
+    ['*'] = {
+	 battlepet = nil,
+	},
+   },
   },
  }
 
@@ -23,6 +29,7 @@ function BartrubySummonPet:OnInitialize()
  
  self:RegisterChatCommand("bartrubysummonpet","HandleIt")
  self:RegisterEvent("PET_JOURNAL_LIST_UPDATE", "PlaceIcon")
+ self:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED", "PlaceIcon")
  -- May need to register UPDATE_SUMMONPETS_ACTION
  
  local frame = CreateFrame("Frame", nil, PetJournal)
@@ -80,13 +87,24 @@ function BartrubySummonPet:HandleIt(input)
   self:DBChange()
   return
  end
+ 
+ if (command == "spec") then
+  if (self.db.char.multispecs) then
+   self.db.char.multispecs = false
+   self:Print("Set pet per spec to false.")
+  else
+   self.db.char.multispecs = true
+   self:Print("Set pet per spec to true.")
+  end
+  self:PlaceIcon()
+ end
 end
 
 function BartrubySummonPet:CheckCursor(button)
  --self:Print(GetCursorInfo())
  local type, id = GetCursorInfo()
  if (type == "battlepet") then
-  self.db.char.battlepet = id
+  self:SetBattlepet(id)
   self:PlaceIcon()
   ClearCursor()
   return
@@ -99,7 +117,7 @@ function BartrubySummonPet:CheckCursor(button)
     self.db.char.enabled = true
    end
   else
-   self.db.char.battlepet = nil
+   self:SetBattlepet(nil)
   end
   self:PlaceIcon()
  end
@@ -112,14 +130,46 @@ function BartrubySummonPet:PlaceIcon()
  else
   self.bpFrame.enabled:SetTexture("Interface\\Buttons\\UI-CheckBox-Check-Disabled")
  end
- local id = self.db.char.battlepet
+ 
+ local id = nil
+ local noPetIcon = "Interface\\ICONS\\Trade_Archaeology_TyrandesFavoriteDoll.blp"
+ if (self.db.char.multispecs) then
+  local currentSpec = GetSpecialization()  -- Returns Number
+  local _, name, _, icon, _, _, _ = GetSpecializationInfo(currentSpec)
+  id = self.db.char.specs[name].battlepet
+  noPetIcon = icon
+ else
+  id = self.db.char.battlepet
+ end
+ 
  if (not id) then
-  self.bpFrame.texture:SetTexture("Interface\\ICONS\\Trade_Archaeology_TyrandesFavoriteDoll.blp");
+  self.bpFrame.texture:SetTexture(noPetIcon);
   return 
  end
  local _, customName, _, _, _, displayID, _, name, icon, _, _, _, _, _, _, _, _, _ = C_PetJournal.GetPetInfoByPetID(id)
  --self:Print(C_PetJournal.GetPetInfoByPetID(id))
  self.bpFrame.texture:SetTexture(icon)
+end
+
+function BartrubySummonPet:GetBattlepet()
+ if (self.db.char.multispecs) then
+  local _, name, _, _, _, _, _ = GetSpecializationInfo(GetSpecialization())
+  id = self.db.char.specs[name].battlepet
+ else
+  id = self.db.char.battlepet
+ end
+ 
+ return id
+end
+
+function BartrubySummonPet:SetBattlepet(id)
+ if (self.db.char.multispecs) then
+  local currentSpec = GetSpecialization()
+  local _, name, _, _, _, _, _ = GetSpecializationInfo(currentSpec)
+  self.db.char.specs[name].battlepet = id
+ else
+  self.db.char.battlepet = id
+ end
 end
 
 function BartrubySummonPet:SummonPet()
@@ -128,7 +178,7 @@ function BartrubySummonPet:SummonPet()
  if (InCombatLockdown()) then return end
  if (IsStealthed()) then return end
  if (EXCLUDEDZONES[GetRealZoneText()]) then return end
- local id = self.db.char.battlepet
+ local id = self:GetBattlepet()
  local currentPet = C_PetJournal.GetSummonedPetGUID()
  if (currentPet == nil and id == nil) then return end
  if (currentPet ~= nil and id == nil) then C_PetJournal.SummonPetByGUID(currentPet) end
