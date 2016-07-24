@@ -124,7 +124,7 @@ function BartrubySummonPet:CheckCursor(button)
 end
 
 function BartrubySummonPet:PlaceIcon()
- -- May need to add checks to see if they pet exists
+ -- May need to add checks to see if the pet exists
  if (self.db.char.enabled) then
   self.bpFrame.enabled:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
  else
