@@ -28,9 +28,26 @@ function BartrubySummonPet:OnInitialize()
  self.db.RegisterCallback(self, "OnProfileReset", "DBChange")
  
  self:RegisterChatCommand("bartrubysummonpet","HandleIt")
- self:RegisterEvent("PET_JOURNAL_LIST_UPDATE", "PlaceIcon")
- self:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED", "PlaceIcon")
+ self:RegisterEvent("PLAYER_LOGIN")
  -- May need to register UPDATE_SUMMONPETS_ACTION
+end
+
+function BartrubySummonPet:OnEnable()
+ self:SecureHook("MoveForwardStart", "SummonPet")
+ self:SecureHook("ToggleAutoRun", "SummonPet")
+end
+
+function BartrubySummonPet:OnDisable()
+ self:UnregisterAllEvents()
+ self.bpFrame:Hide()
+end
+
+function BartrubySummonPet:PLAYER_LOGIN()
+ self:UnregisterEvent("PLAYER_LOGIN")
+ 
+ if not PetJournal_OnLoad then
+  UIParentLoadAddOn('Blizzard_Collections')
+ end
  
  local frame = CreateFrame("Frame", nil, PetJournal)
  frame:SetPoint("TOPLEFT", PetJournal, "TOPRIGHT", self.db.global.x, self.db.global.y)
@@ -59,17 +76,10 @@ function BartrubySummonPet:OnInitialize()
  frame:EnableMouse(true)
  frame:SetFrameStrata("FULLSCREEN")
  frame:Show()
- self.bpFrame = frame 
-end
-
-function BartrubySummonPet:OnEnable()
- self:SecureHook("MoveForwardStart", "SummonPet")
- self:SecureHook("ToggleAutoRun", "SummonPet")
-end
-
-function BartrubySummonPet:OnDisable()
- self:UnregisterAllEvents()
- self.bpFrame:Hide()
+ self.bpFrame = frame
+ 
+ self:RegisterEvent("PET_JOURNAL_LIST_UPDATE", "PlaceIcon")
+ self:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED", "PlaceIcon")
 end
 
 function BartrubySummonPet:DBChange()
