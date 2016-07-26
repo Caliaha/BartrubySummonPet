@@ -80,10 +80,25 @@ function BartrubySummonPet:PLAYER_LOGIN()
  
  self:RegisterEvent("PET_JOURNAL_LIST_UPDATE", "PlaceIcon")
  self:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED", "PlaceIcon")
+ 
+ if (Rematch) then
+  RematchJournal:SetScript("OnShow", function(self)
+              BartrubySummonPet.bpFrame:SetParent("RematchJournal")
+			  BartrubySummonPet.bpFrame:SetPoint("TOPLEFT", RematchJournal, "TOPRIGHT", BartrubySummonPet.db.global.x, BartrubySummonPet.db.global.y)
+			 end)
+  RematchJournal:SetScript("OnHide", function(self)
+              BartrubySummonPet.bpFrame:SetParent("PetJournal")
+			  BartrubySummonPet.bpFrame:SetPoint("TOPLEFT", PetJournal, "TOPRIGHT", BartrubySummonPet.db.global.x, BartrubySummonPet.db.global.y)
+			 end)
+ end
 end
 
 function BartrubySummonPet:DBChange()
- self.bpFrame:SetPoint("TOPLEFT", PetJournal, "TOPRIGHT", self.db.global.x, self.db.global.y)
+ if (RematchJournal and RematchJournal:IsVisible()) then
+  self.bpFrame:SetPoint("TOPLEFT", RematchJournal, "TOPRIGHT", self.db.global.x, self.db.global.y)
+ else
+  self.bpFrame:SetPoint("TOPLEFT", PetJournal, "TOPRIGHT", self.db.global.x, self.db.global.y)
+ end
 end
 
 function BartrubySummonPet:HandleIt(input)

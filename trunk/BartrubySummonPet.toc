@@ -3,7 +3,7 @@
 ## Version: @project-version@
 ## Notes: Keeps a specific companion pet summoned per toon
 ## Author: Bartruby of Cairne
-## OptionalDeps: Ace3
+## OptionalDeps: Ace3, Rematch
 ## X-Embeds: Ace3
 ## SavedVariables: BartrubySummonPetDB
 
