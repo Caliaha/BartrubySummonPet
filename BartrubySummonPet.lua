@@ -24,6 +24,11 @@ function BartrubySummonPet:OnInitialize()
 	 battlepet = nil,
 	},
    },
+   sets = {
+    ['*'] = {
+	 battlepet = nil,
+	},
+   },
   },
  }
 
@@ -87,6 +92,7 @@ function BartrubySummonPet:PLAYER_LOGIN()
  self:RegisterEvent("PET_JOURNAL_LIST_UPDATE", "PlaceIcon") -- Not sure why this is here but all these events could probably be changed to only fire when shown
  self:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED", "PlaceIcon") -- Could probably only register for when frame is shown
  self:RegisterEvent("UNIT_PET", "PlaceIcon") -- Could probably only register for when frame is shown
+ self:RegisterEvent("EQUIPMENT_SETS_CHANGED", "PlaceIcon")
  
  if (Rematch) then
   RematchJournal:SetScript("OnShow", function(self)
@@ -148,18 +154,36 @@ function BartrubySummonPet:HandleIt(input)
   return
  end
  
+ if (command == "sets") then
+  if (self:GetBattlepet(true) == "EQUIPMENTSETS") then
+   self:SetBattlepet(nil, true)
+   self:Print("Will no longer summon battlepets based on current equipment set")
+  else
+   self:SetBattlepet("EQUIPMENTSETS", true)
+   self:Print("Will summon battlepets based on current equipment set")
+  end
+  self:PlaceIcon()
+  return
+ end
+ 
+ if (self:GetBattlepet(true) == "EQUIPMENTSETS") then
+  self:Print("Currently set to summon battlepets based on current equipment set")
+ end
+ 
  if (self:GetBattlepet(true) == "MINIONPET") then
   self:Print("Currently set to summon battlepets based on currently active pet")
  end
  
  if (self.db.char.multispecs) then
-  self:Print("Currently set to summon pets based on currently active spec")
+  self:Print("Currently set to summon battlepets based on currently active spec")
  end
- 
+
  self:Print("Commands are as following:")
  self:Print("reset -> Resets position of battlepet square")
  self:Print("spec -> Toggles summoning based on active specialization")
  self:Print("pets -> Toggles summoning based on current pet or demon (warlocks/hunters only)")
+ self:Print("sets -> Toggles summoning based on current equipement set")
+ self:Print("pets and sets are exclusive with each other, only one may be active")
  self:Print("Commands must be preceded by /bartrubysummonpet")
 end
 
@@ -231,10 +255,15 @@ function BartrubySummonPet:GetBattlepet(noFooling)
   id = self.db.char.pets[name].battlepet
  end
  
+ if (id == "EQUIPMENTSETS") then
+  local name = self:GetCurrentlyEquippedSet()
+  id = self.db.char.sets[name].battlepet
+ end
+ 
  return id
 end
 
-function BartrubySummonPet:SetBattlepet(id, noFooling)
+function BartrubySummonPet:SetBattlepet(id, noFooling) -- Duplicated code in this function could probably be reduced if I knew how
  --if (self.debug) then self:Print(id, noFooling) end
  if (self.db.char.multispecs) then
   local currentSpec = GetSpecialization()
@@ -246,6 +275,12 @@ function BartrubySummonPet:SetBattlepet(id, noFooling)
 	petName = "LONGENOUGHTOHOPEFULLYNOTBEAVALIDPETNAME"
    end
    self.db.char.pets[petName].battlepet = id
+  elseif (self.db.char.specs[name].battlepet == "EQUIPMENTSETS" and not noFooling) then
+   local equipSet = self:GetCurrentlyEquippedSet()
+   if (equipSet == "NOVALIDEQUIPMENTSETS") then
+    self:Print("No valid set equipped, setting battlepet for when no valid sets are equipped")
+   end
+   self.db.char.sets[equipSet].battlepet = id
   else
    self.db.char.specs[name].battlepet = id
   end
@@ -257,29 +292,20 @@ function BartrubySummonPet:SetBattlepet(id, noFooling)
 	petName = "LONGENOUGHTOHOPEFULLYNOTBEAVALIDPETNAME"
    end
    self.db.char.pets[petName].battlepet = id
+  elseif (self.db.char.battlepet == "EQUIPMENTSETS" and not noFooling) then
+   local equipSet = self:GetCurrentlyEquippedSet()
+   if (equipSet == "NOVALIDEQUIPMENTSETS") then
+    self:Print("No valid set equipped, setting battlepet for when no valid sets are equipped")
+   end
+   self.db.char.sets[equipSet].battlepet = id
   else
    self.db.char.battlepet = id
   end
  end
 end
 
---[[function BartrubySummonPet:GetSubpet()
- local name, _ = UnitName("pet")
- if (not name) then return nil end
- return self.db.char.pets[name].battlepet
-end
-
-function BartrubySummonPet:SetSubpet(id)
- local name, _ = UnitName("pet")
- if (not name) then return nil end
- 
- self.db.char.pets[name].battlepet = id
-end
-
-]]--
-
 function BartrubySummonPet:SummonPet()
- -- Things to check for: combat, casting, stealth, mounted, eating/drinking
+ -- Things to check for: combat, casting, stealth, mounted, eating/drinking, other pets (guild, argent tourney)
  if (not self.db.char.enabled) then return end
  if (InCombatLockdown()) then return end
  if (IsStealthed()) then return end
@@ -321,4 +347,13 @@ function BartrubySummonPet:DragStop(frame, button)
   --self:Print(self.db.global.x, self.db.global.y)
   self:DBChange()
  end
+end
+
+function BartrubySummonPet:GetCurrentlyEquippedSet()
+ for i=1, GetNumEquipmentSets() do
+  local name, _, _, isEquipped, _, _, _, _, _ = GetEquipmentSetInfo(i)
+  if (isEquipped) then return name end
+ end
+ 
+ return "NOVALIDEQUIPMENTSETS"
 end
