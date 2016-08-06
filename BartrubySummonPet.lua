@@ -29,6 +29,11 @@ function BartrubySummonPet:OnInitialize()
 	 battlepet = nil,
 	},
    },
+   druidforms = {
+    ['*'] = {
+	 battlepet = nil,
+	}
+   },
   },
  }
 
@@ -79,20 +84,16 @@ function BartrubySummonPet:PLAYER_LOGIN()
  
  frame:RegisterEvent("OnReceiveDrag")
  frame:RegisterEvent("OnMouseUp")
- frame:SetScript("OnShow", function(self) BartrubySummonPet:PlaceIcon() end)
+ frame:SetScript("OnShow", function(self) BartrubySummonPet:PlaceIcon("show") end)
  frame:SetScript("OnReceiveDrag", function(self) BartrubySummonPet:CheckCursor(nil) end)
  frame:SetScript("OnMouseUp", function(self, button) BartrubySummonPet:CheckCursor(button); BartrubySummonPet:DragStop(self, button) end)
  frame:SetScript("OnMouseDown", function(self, button) BartrubySummonPet:DragStart(self, button) end)
+ frame:SetScript("OnHide", function(self) BartrubySummonPet:PlaceIcon("hide") end)
  frame:SetMovable(true)
  frame:EnableMouse(true)
  frame:SetFrameStrata("FULLSCREEN")
  frame:Show()
  self.bpFrame = frame
- 
- self:RegisterEvent("PET_JOURNAL_LIST_UPDATE", "PlaceIcon") -- Not sure why this is here but all these events could probably be changed to only fire when shown
- self:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED", "PlaceIcon") -- Could probably only register for when frame is shown
- self:RegisterEvent("UNIT_PET", "PlaceIcon") -- Could probably only register for when frame is shown
- self:RegisterEvent("EQUIPMENT_SETS_CHANGED", "PlaceIcon")
  
  if (Rematch) then
   RematchJournal:SetScript("OnShow", function(self)
@@ -166,6 +167,34 @@ function BartrubySummonPet:HandleIt(input)
   return
  end
  
+ if (command == "druid") then
+  if (self:GetBattlepet(true) == "DRUIDFORMS") then
+   self:SetBattlepet(nil, true)
+   self:Print("Will no longer summon battlepets based on current equipment set")
+  else
+   local _, class, _ = UnitClass("player")
+   if (class ~= "DRUID") then self:Print("This command is only available to druids") return end
+   
+   self:SetBattlepet("DRUIDFORMS", true)
+   self:Print("Will summon battlepets based on current druid form")
+  end
+  self:PlaceIcon()
+  return
+ end
+
+ self:Print("Commands are as following:")
+ self:Print("reset -> Resets position of battlepet square")
+ self:Print("spec -> Toggles summoning based on active specialization")
+ self:Print("pets -> Toggles summoning based on current pet or demon (warlocks/hunters only)")
+ self:Print("sets -> Toggles summoning based on current equipment set")
+ self:Print("druid -> Toggles summong based on current equipment set")
+ self:Print("pets and sets and druid are exclusive with each other, only one may be active")
+ self:Print("Commands must be preceded by /bartrubysummonpet")
+ 
+ if (self:GetBattlepet(true) == "DRUIDFORMS") then
+  self:Print("Currently set to summon battlepets based on currently active druid form")
+ end
+ 
  if (self:GetBattlepet(true) == "EQUIPMENTSETS") then
   self:Print("Currently set to summon battlepets based on current equipment set")
  end
@@ -177,14 +206,6 @@ function BartrubySummonPet:HandleIt(input)
  if (self.db.char.multispecs) then
   self:Print("Currently set to summon battlepets based on currently active spec")
  end
-
- self:Print("Commands are as following:")
- self:Print("reset -> Resets position of battlepet square")
- self:Print("spec -> Toggles summoning based on active specialization")
- self:Print("pets -> Toggles summoning based on current pet or demon (warlocks/hunters only)")
- self:Print("sets -> Toggles summoning based on current equipement set")
- self:Print("pets and sets are exclusive with each other, only one may be active")
- self:Print("Commands must be preceded by /bartrubysummonpet")
 end
 
 function BartrubySummonPet:CheckCursor(button)
@@ -210,7 +231,20 @@ function BartrubySummonPet:CheckCursor(button)
  end
 end
 
-function BartrubySummonPet:PlaceIcon()
+function BartrubySummonPet:PlaceIcon(register)
+ if (register == "show") then
+  self:RegisterEvent("PET_JOURNAL_LIST_UPDATE", "PlaceIcon") -- Might not be needed?
+  self:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED", "PlaceIcon")
+  self:RegisterEvent("UNIT_PET", "PlaceIcon")
+  self:RegisterEvent("EQUIPMENT_SETS_CHANGED", "PlaceIcon")
+  self:RegisterEvent("UPDATE_SHAPESHIFT_FORM", "PlaceIcon")
+ elseif (register == "hide") then
+  self:UnregisterEvent("PET_JOURNAL_LIST_UPDATE")
+  self:UnregisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+  self:UnregisterEvent("UNIT_PET", "PlaceIcon")
+  self:UnregisterEvent("EQUIPMENT_SETS_CHANGED")
+  self:UnregisterEvent("UPDATE_SHAPESHIFT_FORM")
+ end
  --if(self.debug) then self:Print("PlaceIcon() Called") end
  if (not self.bpFrame:IsVisible()) then return end -- If we can't be seen then don't do anything
  
@@ -236,6 +270,8 @@ function BartrubySummonPet:PlaceIcon()
 end
 
 function BartrubySummonPet:GetBattlepet(noFooling)
+ local id = nil
+ 
  if (self.db.char.multispecs) then
   local _, name, _, _, _, _, _ = GetSpecializationInfo(GetSpecialization())
   id = self.db.char.specs[name].battlepet
@@ -260,44 +296,48 @@ function BartrubySummonPet:GetBattlepet(noFooling)
   id = self.db.char.sets[name].battlepet
  end
  
+ if (id == "DRUIDFORMS") then
+  form = GetShapeshiftForm()
+  id = self.db.char.druidforms[form].battlepet
+ end
+ 
  return id
 end
 
 function BartrubySummonPet:SetBattlepet(id, noFooling) -- Duplicated code in this function could probably be reduced if I knew how
  --if (self.debug) then self:Print(id, noFooling) end
+ local battlepet = nil
+ 
  if (self.db.char.multispecs) then
   local currentSpec = GetSpecialization()
   local _, name, _, _, _, _, _ = GetSpecializationInfo(currentSpec)
-  if (self.db.char.specs[name].battlepet == "MINIONPET" and not noFooling) then
-   local petName, _ = UnitName("pet")
-   if (petName == nil) then
-    self:Print("No minion summoned, setting battlepet for when no minions are out")
-	petName = "LONGENOUGHTOHOPEFULLYNOTBEAVALIDPETNAME"
-   end
-   self.db.char.pets[petName].battlepet = id
-  elseif (self.db.char.specs[name].battlepet == "EQUIPMENTSETS" and not noFooling) then
-   local equipSet = self:GetCurrentlyEquippedSet()
-   if (equipSet == "NOVALIDEQUIPMENTSETS") then
-    self:Print("No valid set equipped, setting battlepet for when no valid sets are equipped")
-   end
-   self.db.char.sets[equipSet].battlepet = id
-  else
-   self.db.char.specs[name].battlepet = id
-  end
+  battlepet = self.db.char.specs[name].battlepet
  else
-  if (self.db.char.battlepet == "MINIONPET" and not noFooling) then
-   local petName, _ = UnitName("pet")
-   if (petName == nil) then
-    self:Print("No minion summoned, setting battlepet for when no minions are out")
-	petName = "LONGENOUGHTOHOPEFULLYNOTBEAVALIDPETNAME"
-   end
-   self.db.char.pets[petName].battlepet = id
-  elseif (self.db.char.battlepet == "EQUIPMENTSETS" and not noFooling) then
-   local equipSet = self:GetCurrentlyEquippedSet()
-   if (equipSet == "NOVALIDEQUIPMENTSETS") then
-    self:Print("No valid set equipped, setting battlepet for when no valid sets are equipped")
-   end
-   self.db.char.sets[equipSet].battlepet = id
+  battlepet = self.db.char.battlepet
+ end
+ 
+ if (battlepet == "MINIONPET" and not noFooling) then
+  local petName, _ = UnitName("pet")
+  if (petName == nil) then
+   self:Print("No minion summoned, setting battlepet for when no minions are out")
+   petName = "LONGENOUGHTOHOPEFULLYNOTBEAVALIDPETNAME"
+  end
+  self.db.char.pets[petName].battlepet = id
+ elseif (battlepet == "EQUIPMENTSETS" and not noFooling) then
+  local equipSet = self:GetCurrentlyEquippedSet()
+  if (equipSet == "NOVALIDEQUIPMENTSETS") then
+   self:Print("No valid set equipped, setting battlepet for when no valid sets are equipped")
+  end
+  self.db.char.sets[equipSet].battlepet = id
+ elseif (battlepet == "DRUIDFORMS" and not noFooling) then
+  local form = GetShapeshiftForm()
+  if (form == nil) then form = 0 end
+  self.db.char.druidforms[form].battlepet = id
+ else
+  if (self.db.char.multispecs) then
+   local currentSpec = GetSpecialization()
+   local _, name, _, _, _, _, _ = GetSpecializationInfo(currentSpec)
+   self.db.char.specs[name].battlepet = id
   else
    self.db.char.battlepet = id
   end
