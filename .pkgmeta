@@ -1,9 +1,5 @@
 package-as: BartrubySummonPet
 
-ignore:
- - .pkgmeta
- - tools
-
 externals:
  libs/LibStub:
   url: svn://svn.wowace.com/wow/libstub/mainline
