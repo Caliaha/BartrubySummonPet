@@ -14,6 +14,12 @@ function BartrubySummonPet:OnInitialize()
    enabled = true,
    battlepet = nil,
    multispecs = false,
+   mount = false,
+   mounts = {
+    ['*'] = {
+	 battlepet = nil,
+	},
+   },
    specs = {
     ['*'] = {
 	 battlepet = nil,
@@ -54,7 +60,7 @@ function BartrubySummonPet:OnEnable()
 end
 
 function BartrubySummonPet:OnDisable()
- self:UnregisterAllEvents()
+ self:UnregisterAllEvents() -- Might be unnecessary
  self.bpFrame:Hide()
 end
 
@@ -139,6 +145,18 @@ function BartrubySummonPet:HandleIt(input)
   return
  end
  
+ if (command == "mount") then
+  if (self.db.char.mount) then
+   self.db.char.mount = false
+   self:Print("Set summon pet while mounted to false.")
+  else
+   self.db.char.mount = true
+   self:Print("Set summon pet while mounted to true.")
+  end
+  self:PlaceIcon()
+  return
+ end
+ 
  if (command == "pets") then
   if (self:GetBattlepet(true) == "MINIONPET") then
    self:SetBattlepet(nil, true)
@@ -206,6 +224,10 @@ function BartrubySummonPet:HandleIt(input)
  if (self.db.char.multispecs) then
   self:Print("Currently set to summon battlepets based on currently active spec")
  end
+ 
+ if (self.db.char.mount) then
+  self:Print("Currently set to summon a different battlepet based on mount")
+ end
 end
 
 function BartrubySummonPet:CheckCursor(button)
@@ -238,12 +260,9 @@ function BartrubySummonPet:PlaceIcon(register)
   self:RegisterEvent("UNIT_PET", "PlaceIcon")
   self:RegisterEvent("EQUIPMENT_SETS_CHANGED", "PlaceIcon")
   self:RegisterEvent("UPDATE_SHAPESHIFT_FORM", "PlaceIcon")
+  if (self.db.char.mounts) then self:RegisterEvent("UNIT_AURA", "PlaceIcon") end
  elseif (register == "hide") then
-  self:UnregisterEvent("PET_JOURNAL_LIST_UPDATE")
-  self:UnregisterEvent("PLAYER_SPECIALIZATION_CHANGED")
-  self:UnregisterEvent("UNIT_PET", "PlaceIcon")
-  self:UnregisterEvent("EQUIPMENT_SETS_CHANGED")
-  self:UnregisterEvent("UPDATE_SHAPESHIFT_FORM")
+  self:UnregisterAllEvents()
  end
  --if(self.debug) then self:Print("PlaceIcon() Called") end
  if (not self.bpFrame:IsVisible()) then return end -- If we can't be seen then don't do anything
@@ -271,6 +290,11 @@ end
 
 function BartrubySummonPet:GetBattlepet(noFooling)
  local id = nil
+ 
+ if (self.db.char.mount and IsMounted()) then -- If we have pet assigned to this mount then return it, else continue on and find another.
+  id = self.db.char.mounts[self:GetCurrentlySummonedMount()].battlepet
+  if (id) then return id end
+ end
  
  if (self.db.char.multispecs) then
   local _, name, _, _, _, _, _ = GetSpecializationInfo(GetSpecialization())
@@ -304,14 +328,20 @@ function BartrubySummonPet:GetBattlepet(noFooling)
  return id
 end
 
-function BartrubySummonPet:SetBattlepet(id, noFooling) -- Duplicated code in this function could probably be reduced if I knew how
- --if (self.debug) then self:Print(id, noFooling) end
+function BartrubySummonPet:SetBattlepet(id, noFooling)
  local battlepet = nil
+ 
+ if (self.db.char.mount and IsMounted()) then -- Mounted takes priority
+   local mount = self:GetCurrentlySummonedMount()
+   self.db.char.mounts[mount].battlepet = id
+   self:Print("Set a pet for", mount)
+   return
+ end
  
  if (self.db.char.multispecs) then
   local currentSpec = GetSpecialization()
   local _, name, _, _, _, _, _ = GetSpecializationInfo(currentSpec)
-  battlepet = self.db.char.specs[name].battlepet
+  battlepet = self.db.char.specs[name].battlepet 
  else
   battlepet = self.db.char.battlepet
  end
@@ -345,7 +375,8 @@ function BartrubySummonPet:SetBattlepet(id, noFooling) -- Duplicated code in thi
 end
 
 function BartrubySummonPet:SummonPet()
- -- Things to check for: combat, casting, stealth, mounted, eating/drinking, other pets (guild, argent tourney)
+ -- Things to check for: combat, casting, stealth, mounted, other pets (guild, argent tourney)
+ -- C_PetJournal.GetPetInfoByPetID(C_PetJournal.GetSummonedPetGUID())
  if (not self.db.char.enabled) then return end
  if (InCombatLockdown()) then return end
  if (IsStealthed()) then return end
@@ -396,4 +427,16 @@ function BartrubySummonPet:GetCurrentlyEquippedSet()
  end
  
  return "NOVALIDEQUIPMENTSETS"
+end
+
+function BartrubySummonPet:GetCurrentlySummonedMount()
+ local mounts = C_MountJournal.GetMountIDs()
+ for k, v in pairs(mounts) do
+  local creatureName, _, _, active, _, _, _, _, _, _, _, _ = C_MountJournal.GetMountInfoByID(v)
+  if (active) then
+   return creatureName
+  end
+ end
+ 
+ return "NOVALIDMOUNTS" -- Probably shouldn't ever happen, idk
 end
