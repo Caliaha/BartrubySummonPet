@@ -9,12 +9,16 @@ function BartrubySummonPet:OnInitialize()
    enabled = true,
    x = 0,
    y = 0,
+   mounts = {
+    ['*'] = nil,
+   },
   },
   char = {
    enabled = true,
    battlepet = nil,
    multispecs = false,
    mount = false,
+   useglobal = false,
    mounts = {
     ['*'] = {
 	 battlepet = nil,
@@ -199,13 +203,27 @@ function BartrubySummonPet:HandleIt(input)
   self:PlaceIcon()
   return
  end
+ 
+ if (command == "global") then
+  if (self.db.char.useglobal) then
+   self:Print("Will no longer use global mount list")
+   self.db.char.useglobal = false
+  else
+   self:Print("Will use global mount list")
+   self.db.char.useglobal = true
+  end
+  self:PlaceIcon()
+  return
+ end
 
  self:Print("Commands are as following:")
  self:Print("reset -> Resets position of battlepet square")
  self:Print("spec -> Toggles summoning based on active specialization")
  self:Print("pets -> Toggles summoning based on current pet or demon (warlocks/hunters only)")
  self:Print("sets -> Toggles summoning based on current equipment set")
- self:Print("druid -> Toggles summong based on current equipment set")
+ self:Print("druid -> Toggles summoning based on current equipment set")
+ self:Print("mount -> Toggles summoning based on current active mount")
+ self:Print("global -> Toggles use of global mount list for current character")
  self:Print("pets and sets and druid are exclusive with each other, only one may be active")
  self:Print("Commands must be preceded by /bartrubysummonpet")
  
@@ -227,6 +245,10 @@ function BartrubySummonPet:HandleIt(input)
  
  if (self.db.char.mount) then
   self:Print("Currently set to summon a different battlepet based on mount")
+ end
+ 
+ if (self.db.char.useglobal) then
+  self:Print("Currently using the global mount list")
  end
 end
 
@@ -292,7 +314,11 @@ function BartrubySummonPet:GetBattlepet(noFooling)
  local id = nil
  
  if (self.db.char.mount and IsMounted()) then -- If we have pet assigned to this mount then return it, else continue on and find another.
-  id = self.db.char.mounts[self:GetCurrentlySummonedMount()].battlepet
+  if (self.db.char.useglobal) then
+   id = self.db.global.mounts[self:GetCurrentlySummonedMount()]
+  else
+   id = self.db.char.mounts[self:GetCurrentlySummonedMount()].battlepet
+  end
   if (id) then return id end
  end
  
@@ -333,7 +359,12 @@ function BartrubySummonPet:SetBattlepet(id, noFooling)
  
  if (self.db.char.mount and IsMounted()) then -- Mounted takes priority
    local mount = self:GetCurrentlySummonedMount()
-   self.db.char.mounts[mount].battlepet = id
+   if (self.db.char.useglobal) then
+    self.db.global.mounts[mount] = id
+   else
+	self.db.char.mounts[mount].battlepet = id
+   end
+   
    self:Print("Set a pet for", mount)
    return
  end
