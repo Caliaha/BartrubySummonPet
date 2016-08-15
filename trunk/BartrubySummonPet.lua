@@ -3,6 +3,8 @@ BartrubySummonPet = LibStub("AceAddon-3.0"):NewAddon("BartrubySummonPet", "AceCo
 local EXCLUDEDZONES = {}
 EXCLUDEDZONES["Proving Grounds"] = true
 
+local EXCLUDEDPETS = {}
+
 function BartrubySummonPet:OnInitialize()
  local defaults = {
   global = {
@@ -19,7 +21,26 @@ function BartrubySummonPet:OnInitialize()
    multispecs = false,
    mount = false,
    useglobal = false,
-   mounts = {
+   ver = 0,
+   battlepets = {
+    default = nil,
+	mounts = {
+	 ['*'] = nil,
+	},
+	sets = {
+	 ['*'] = nil,
+	},
+	specs = {
+	 ['*'] = nil,
+	},
+	pets = {
+	 ['*'] = nil,
+	},
+	druidforms = {
+	 ['*'] = nil,
+	},
+   },
+   mounts = { -- Deprecated from here on down
     ['*'] = {
 	 battlepet = nil,
 	},
@@ -42,7 +63,7 @@ function BartrubySummonPet:OnInitialize()
    druidforms = {
     ['*'] = {
 	 battlepet = nil,
-	}
+	},
    },
   },
  }
@@ -51,6 +72,13 @@ function BartrubySummonPet:OnInitialize()
  self.db.RegisterCallback(self, "OnProfileChanged", "DBChange")
  self.db.RegisterCallback(self, "OnProfileCopied", "DBChange")
  self.db.RegisterCallback(self, "OnProfileReset", "DBChange")
+ 
+ if (self.db.char.ver < 1) then
+  self:UpgradeDB()
+ end
+ 
+ LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("BartrubySummonPet", self:GenerateOptions())
+ self.configFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("BartrubySummonPet", "BartrubySummonPet")
  
  self:RegisterChatCommand("bartrubysummonpet","HandleIt")
  self:RegisterEvent("PLAYER_LOGIN")
@@ -215,6 +243,10 @@ function BartrubySummonPet:HandleIt(input)
   self:PlaceIcon()
   return
  end
+ 
+ if (command == "options") then
+  InterfaceOptionsFrame_OpenToCategory("BartrubySummonPet")
+ end
 
  self:Print("Commands are as following:")
  self:Print("reset -> Resets position of battlepet square")
@@ -305,28 +337,28 @@ function BartrubySummonPet:PlaceIcon(register)
   self.bpFrame.texture:SetTexture(noPetIcon);
   return 
  end
- local _, customName, _, _, _, displayID, _, name, icon, _, _, _, _, _, _, _, _, _ = C_PetJournal.GetPetInfoByPetID(id)
- --self:Print(C_PetJournal.GetPetInfoByPetID(id))
+ 
+ local _, _, _, _, _, _, _, _, icon, _, _, _, _, _, _, _, _, _ = C_PetJournal.GetPetInfoByPetID(id)
  self.bpFrame.texture:SetTexture(icon)
 end
 
 function BartrubySummonPet:GetBattlepet(noFooling)
  local id = nil
  
- if (self.db.char.mount and IsMounted()) then -- If we have pet assigned to this mount then return it, else continue on and find another.
+ if (self.db.char.mount and IsMounted() and not noFooling) then -- If we have pet assigned to this mount then return it, else continue on and find another.
   if (self.db.char.useglobal) then
    id = self.db.global.mounts[self:GetCurrentlySummonedMount()]
   else
-   id = self.db.char.mounts[self:GetCurrentlySummonedMount()].battlepet
+   id = self.db.char.battlepets.mounts[self:GetCurrentlySummonedMount()]
   end
   if (id) then return id end
  end
  
  if (self.db.char.multispecs) then
   local _, name, _, _, _, _, _ = GetSpecializationInfo(GetSpecialization())
-  id = self.db.char.specs[name].battlepet
+  id = self.db.char.battlepets.specs[name]
  else
-  id = self.db.char.battlepet
+  id = self.db.char.battlepets.default
  end
  
  if (noFooling) then
@@ -338,17 +370,17 @@ function BartrubySummonPet:GetBattlepet(noFooling)
   if (name == nil) then
    name = "LONGENOUGHTOHOPEFULLYNOTBEAVALIDPETNAME"
   end
-  id = self.db.char.pets[name].battlepet
+  id = self.db.char.battlepets.pets[name]
  end
  
  if (id == "EQUIPMENTSETS") then
   local name = self:GetCurrentlyEquippedSet()
-  id = self.db.char.sets[name].battlepet
+  id = self.db.char.battlepets.sets[name]
  end
  
  if (id == "DRUIDFORMS") then
   form = GetShapeshiftForm()
-  id = self.db.char.druidforms[form].battlepet
+  id = self.db.char.battlepets.druidforms[form]
  end
  
  return id
@@ -356,25 +388,30 @@ end
 
 function BartrubySummonPet:SetBattlepet(id, noFooling)
  local battlepet = nil
+ local battlepetName = "NO PET"
  
- if (self.db.char.mount and IsMounted()) then -- Mounted takes priority
-   local mount = self:GetCurrentlySummonedMount()
-   if (self.db.char.useglobal) then
-    self.db.global.mounts[mount] = id
-   else
-	self.db.char.mounts[mount].battlepet = id
-   end
+ if (not noFooling and id) then
+  battlepetName = select(8, C_PetJournal.GetPetInfoByPetID(id))
+ end
+ 
+ if (self.db.char.mount and IsMounted() and not noFooling) then -- Mounted takes priority but don't assign modifiers
+  local mount = self:GetCurrentlySummonedMount()
+  if (self.db.char.useglobal) then
+   self.db.global.mounts[mount] = id
+  else
+   self.db.char.battlepets.mounts[mount] = id
+  end
    
-   self:Print("Set a pet for", mount)
-   return
+  self:Print("Set", battlepetName, "for", mount)
+  return
  end
  
  if (self.db.char.multispecs) then
   local currentSpec = GetSpecialization()
   local _, name, _, _, _, _, _ = GetSpecializationInfo(currentSpec)
-  battlepet = self.db.char.specs[name].battlepet 
+  battlepet = self.db.char.battlepets.specs[name]
  else
-  battlepet = self.db.char.battlepet
+  battlepet = self.db.char.battlepets.default
  end
  
  if (battlepet == "MINIONPET" and not noFooling) then
@@ -382,32 +419,38 @@ function BartrubySummonPet:SetBattlepet(id, noFooling)
   if (petName == nil) then
    self:Print("No minion summoned, setting battlepet for when no minions are out")
    petName = "LONGENOUGHTOHOPEFULLYNOTBEAVALIDPETNAME"
+  else
+   self:Print("Set",battlepetName,"for",petName)
   end
-  self.db.char.pets[petName].battlepet = id
+  self.db.char.battlepets.pets[petName] = id
  elseif (battlepet == "EQUIPMENTSETS" and not noFooling) then
   local equipSet = self:GetCurrentlyEquippedSet()
   if (equipSet == "NOVALIDEQUIPMENTSETS") then
    self:Print("No valid set equipped, setting battlepet for when no valid sets are equipped")
+  else
+   self:Print("Set",battlepetName,"for equipment set:",equipSet)
   end
-  self.db.char.sets[equipSet].battlepet = id
+  self.db.char.battlepets.sets[equipSet] = id
  elseif (battlepet == "DRUIDFORMS" and not noFooling) then
   local form = GetShapeshiftForm()
   if (form == nil) then form = 0 end
-  self.db.char.druidforms[form].battlepet = id
+  self.db.char.battlepets.druidforms[form] = id
  else
   if (self.db.char.multispecs) then
    local currentSpec = GetSpecialization()
    local _, name, _, _, _, _, _ = GetSpecializationInfo(currentSpec)
-   self.db.char.specs[name].battlepet = id
+   self.db.char.battlepets.specs[name] = id
+   if (battlepetName ~= "NO PET") then
+    self:Print("Set",battlepetName,"for",name)
+   end
   else
-   self.db.char.battlepet = id
+   self.db.char.battlepets.default = id
   end
  end
 end
 
 function BartrubySummonPet:SummonPet()
- -- Things to check for: combat, casting, stealth, mounted, other pets (guild, argent tourney)
- -- C_PetJournal.GetPetInfoByPetID(C_PetJournal.GetSummonedPetGUID())
+ -- Things to check for: other pets (guild, argent tourney)
  if (not self.db.char.enabled) then return end
  if (InCombatLockdown()) then return end
  if (IsStealthed()) then return end
@@ -415,9 +458,9 @@ function BartrubySummonPet:SummonPet()
  local id = self:GetBattlepet()
  
  local currentPet = C_PetJournal.GetSummonedPetGUID()
- if (currentPet == nil and id == nil) then return end
- if (currentPet ~= nil and id == nil) then C_PetJournal.SummonPetByGUID(currentPet) end
- if (currentPet ~= id and id ~= nil) then C_PetJournal.SummonPetByGUID(id) end
+ if (currentPet == nil and id == nil) then return end -- No pet out and no pet to summon; do nothing
+ if (currentPet ~= nil and id == nil) then C_PetJournal.SummonPetByGUID(currentPet) end -- Pet out but should be dismissed; dismiss current pet
+ if (currentPet ~= id and id ~= nil) then C_PetJournal.SummonPetByGUID(id) end -- No or incorrect pet is out; summon
 end
 
 local xB = 0
@@ -470,4 +513,83 @@ function BartrubySummonPet:GetCurrentlySummonedMount()
  end
  
  return "NOVALIDMOUNTS" -- Probably shouldn't ever happen, idk
+end
+
+function BartrubySummonPet:GenerateOptions()
+ return {
+  name = "BartrubySummonPet",
+  type = "group",
+  args = {
+   enabled = {
+    name = "Enabled",
+    order = 1,
+    type = "toggle",
+    set = function(i, v) self.db.char.enabled = v self:PlaceIcon() end,
+    get = function(i) return self.db.char.enabled end
+   },
+   specialization = {
+    name = "Specializations",
+	desc = "Use different battlepets for each spec",
+	order = 2,
+	type = "toggle",
+	set = function(i, v) self.db.char.multispecs = v self:PlaceIcon() end,
+	get = function(i) return self.db.char.multispecs end,
+   },
+   mount = {
+    name = "Mounts",
+	desc = "Use different battlepets while on a mount",
+	order = 3,
+	type = "toggle",
+	set = function(i, v) self.db.char.mount = v self:PlaceIcon() end,
+	get = function(i) return self.db.char.mount end,
+   },
+   mountglobal = {
+    name = "Use Global Mount List",
+	order = 4,
+	type = "toggle",
+	set = function(i, v) self.db.char.useglobal = v self:PlaceIcon() end,
+	get = function(i) return self.db.char.useglobal end
+   },
+   summonoptions = {
+    name = "Summoning Options",
+    order = 5,
+    type = "select",
+    style = "radio",
+    values = { [""] = "Default", ["MINIONPET"] = "Hunter/Warlock Pet", ["EQUIPMENTSETS"] = "Equipment Sets", ["DRUIDFORMS"] = "Druid Forms" },
+    set = function(i, v) if (v == "") then self:SetBattlepet(nil, true) else if (v == "DRUIDFORMS" and select(2,UnitClass("player")) ~= "DRUID") then return end self:SetBattlepet(v, true) end end,
+    get = function(i) local pet = self:GetBattlepet(true) if (pet == "MINIONPET" or pet == "EQUIPMENTSETS" or pet == "DRUIDFORMS") then return pet else return "" end end,
+    },
+  },
+ }
+end
+
+function BartrubySummonPet:UpgradeDB()
+ if (self.db.char.ver < 1) then
+  --self:Print("Upgrading database to version 1")
+  --local tablesToUpgrade = { self.db.char.specs, self.db.char.sets, self.db.char.mounts }
+  local battlepets = self.db.char.battlepets
+  battlepets["default"] = self.db.char.battlepet
+  self.db.char.battlepet = nil
+  for i,v in pairs(self.db.char.specs) do
+   battlepets.specs[i] = v.battlepet
+   v.battlepet = nil
+  end
+  for i,v in pairs(self.db.char.sets) do
+   battlepets.sets[i] = v.battlepet
+   v.battlepet = nil
+  end
+  for i,v in pairs(self.db.char.mounts) do
+   battlepets.mounts[i] = v.battlepet
+   v.battlepet = nil
+  end
+  for i,v in pairs(self.db.char.pets) do
+   battlepets.pets[i] = v.battlepet
+   v.battlepet = nil
+  end
+  for i,v in pairs(self.db.char.druidforms) do
+   battlepets.druidforms[i] = v.battlepet
+   v.battlepet = nil
+  end
+  self.db.char.ver = 1
+ end
 end
