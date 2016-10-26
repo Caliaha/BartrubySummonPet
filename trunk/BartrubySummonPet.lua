@@ -3,7 +3,7 @@ BartrubySummonPet = LibStub("AceAddon-3.0"):NewAddon("BartrubySummonPet", "AceCo
 local EXCLUDEDZONES = {}
 EXCLUDEDZONES["Proving Grounds"] = true
 
-local EXCLUDEDPETS = {}
+--local EXCLUDEDPETS = {}
 
 function BartrubySummonPet:OnInitialize()
  local defaults = {
@@ -451,11 +451,15 @@ end
 
 function BartrubySummonPet:SummonPet()
  -- Things to check for: other pets (guild, argent tourney)
- if (not self.db.char.enabled) then return end
- if (InCombatLockdown()) then return end
- if (IsStealthed()) then return end
- if (EXCLUDEDZONES[GetRealZoneText()]) then return end
+ 
+ if (not self.db.char.enabled or InCombatLockdown() or UnitIsDeadOrGhost("player") or IsStealthed() or EXCLUDEDZONES[GetRealZoneText()]) then return end
+ --[[if () then return end
+ if () then return end
+ if () then return end
+ if () then return end
+ ]]--
  local id = self:GetBattlepet()
+ --if (EXCLUDEDPETS[id]) then return end
  
  local currentPet = C_PetJournal.GetSummonedPetGUID()
  if (currentPet == nil and id == nil) then return end -- No pet out and no pet to summon; do nothing
@@ -479,17 +483,15 @@ end
 function BartrubySummonPet:DragStop(frame, button)
  if (button == "LeftButton" and frame.isMoving == true) then
   frame.isMoving = false
-  --self.db.global.x = frame:GetLeft()
-  --self.db.global.y = frame:GetTop()
+
   local _, _, _, x, y = frame:GetPoint()
   frame:StopMovingOrSizing()
-  --self:Print(x, y)
+
   local xDelta = x - xB
   local yDelta = y - yB
-  --self:Print(xDelta, yDelta)
+
   self.db.global.x = xDelta + self.db.global.x
   self.db.global.y = yDelta + self.db.global.y
-  --self:Print(self.db.global.x, self.db.global.y)
   self:DBChange()
  end
 end
