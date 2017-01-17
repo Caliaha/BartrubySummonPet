@@ -391,7 +391,13 @@ function BartrubySummonPet:SetBattlepet(id, noFooling)
  local battlepetName = "NO PET"
  
  if (not noFooling and id) then
-  battlepetName = select(8, C_PetJournal.GetPetInfoByPetID(id))
+  --battlepetName = select(8, C_PetJournal.GetPetInfoByPetID(id))
+  local _, customName, _, _, _, _, _, name = C_PetJournal.GetPetInfoByPetID(id)
+  if (customName) then
+   battlepetName = customName .. " (" .. name .. ")"
+  else
+   battlepetName = name
+  end
  end
  
  if (self.db.char.mount and IsMounted() and not noFooling) then -- Mounted takes priority but don't assign modifiers
