@@ -19,6 +19,7 @@ function BartrubySummonPet:OnInitialize()
    enabled = true,
    battlepet = nil,
    multispecs = false,
+   stealth = false,
    mount = false,
    useglobal = false,
    ver = 0,
@@ -82,6 +83,7 @@ function BartrubySummonPet:OnInitialize()
  
  self:RegisterChatCommand("bartrubysummonpet","HandleIt")
  self:RegisterEvent("PLAYER_LOGIN")
+ self:RegisterEvent("UPDATE_STEALTH", "StealthStuff")
  -- May need to register UPDATE_SUMMONPETS_ACTION
  self.debug = false
 end
@@ -246,6 +248,7 @@ function BartrubySummonPet:HandleIt(input)
  
  if (command == "options") then
   InterfaceOptionsFrame_OpenToCategory("BartrubySummonPet")
+  InterfaceOptionsFrame_OpenToCategory("BartrubySummonPet")
  end
 
  self:Print("Commands are as following:")
@@ -316,7 +319,11 @@ function BartrubySummonPet:PlaceIcon(register)
   self:RegisterEvent("UPDATE_SHAPESHIFT_FORM", "PlaceIcon")
   if (self.db.char.mounts) then self:RegisterEvent("UNIT_AURA", "PlaceIcon") end
  elseif (register == "hide") then
-  self:UnregisterAllEvents()
+  self:UnregisterEvent("PET_JOURNAL_LIST_UPDATE") -- Might not be needed?
+  self:UnregisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+  self:UnregisterEvent("UNIT_PET", "PlaceIcon")
+  self:UnregisterEvent("EQUIPMENT_SETS_CHANGED")
+  self:UnregisterEvent("UPDATE_SHAPESHIFT_FORM")
  end
  --if(self.debug) then self:Print("PlaceIcon() Called") end
  if (not self.bpFrame:IsVisible()) then return end -- If we can't be seen then don't do anything
@@ -456,7 +463,7 @@ function BartrubySummonPet:SetBattlepet(id, noFooling)
 end
 
 function BartrubySummonPet:SummonPet()
- -- Things to check for: other pets (guild, argent tourney)
+ -- Things to check for: other pets (guild, argent tourney) 
  
  if (not self.db.char.enabled or InCombatLockdown() or UnitIsDeadOrGhost("player") or IsStealthed() or EXCLUDEDZONES[GetRealZoneText()]) then return end
  --[[if () then return end
@@ -483,6 +490,21 @@ function BartrubySummonPet:DragStart(frame, button)
   xB = x
   yB = y
   --self:Print(xB, yB)
+ end
+end
+
+function BartrubySummonPet:StealthStuff()
+ if (not self.db.char.stealth) then return end
+ 
+ if (IsStealthed()) then
+  --self:Print("In Stealth, dismissing pet")
+  if (InCombatLockdown()) then return end -- Can't dismiss pet in combat
+  local currentPet = C_PetJournal.GetSummonedPetGUID()
+  if (not currentPet) then return end -- No pet to dismiss
+  C_PetJournal.SummonPetByGUID(currentPet)
+ else
+  --self:Print("Not in stealth, summoning pet")
+  self:SummonPet()
  end
 end
 
@@ -542,6 +564,14 @@ function BartrubySummonPet:GenerateOptions()
 	type = "toggle",
 	set = function(i, v) self.db.char.multispecs = v self:PlaceIcon() end,
 	get = function(i) return self.db.char.multispecs end,
+   },
+   stealth = {
+    name = "Stealth",
+	desc = "Dismiss pet while stealthed",
+	order = 2.5,
+	type = "toggle",
+	set = function(i, v) self.db.char.stealth = v self:PlaceIcon() end,
+	get = function(i) return self.db.char.stealth end,
    },
    mount = {
     name = "Mounts",
