@@ -1,7 +1,12 @@
 BartrubySummonPet = LibStub("AceAddon-3.0"):NewAddon("BartrubySummonPet", "AceConsole-3.0", "AceEvent-3.0", "AceHook-3.0")
 
 local EXCLUDEDZONES = {}
-EXCLUDEDZONES["Proving Grounds"] = true
+EXCLUDEDZONES["Proving Grounds"] = true -- This can probably be removed, I'm fairly sure zones are localized
+
+local CHEFHATBUFFID = 67556
+local PIERRE = 1204
+local RAGNAROS = 297
+COOKINGPETS = { }
 
 --local EXCLUDEDPETS = {}
 
@@ -22,6 +27,7 @@ function BartrubySummonPet:OnInitialize()
    stealth = false,
    mount = false,
    useglobal = false,
+   chefhat = false,
    ver = 0,
    battlepets = {
     default = nil,
@@ -352,6 +358,36 @@ end
 function BartrubySummonPet:GetBattlepet(noFooling)
  local id = nil
  
+ -- I feel I've made a mess with this cooking hat thing
+ -- The intent here is to summon a random pet that can be cooked on while wearing a chef's hat and not attempt to summon another cooking pet while one is already out
+ -- The PetJournal stuff is because I don't think names are the same in different languages so we loop through with pet ids we know to find the ids to summon them with
+ -- This part can fail based on PetJournal filtering
+ if (self.db.char.chefhat and self:IsChefHatEquipped() and not noFooling) then
+  if (#COOKINGPETS == 0) then
+   for i=1,C_PetJournal.GetNumPets() do
+   local petID, speciesID, owned, customName, level, favorite, isRevoked, speciesName, icon, petType, companionID, _, _, _, _, _, _, _ = C_PetJournal.GetPetInfoByIndex(i)
+    if ((speciesID == PIERRE or speciesID == RAGNAROS) and petID and owned) then
+     table.insert(COOKINGPETS,petID)
+     --print(speciesName, speciesID, petID)
+    end
+   end
+  end
+  if (#COOKINGPETS > 0) then
+   for i,v in pairs(COOKINGPETS) do
+    local currentPet = C_PetJournal.GetSummonedPetGUID()
+	if (currentPet == v) then
+	 --self:Print("Cooking pet is already out")
+	 return v
+	end
+   end
+   --self:Print(#COOKINGPETS, math.random(#COOKINGPETS))
+   id = COOKINGPETS[math.random(#COOKINGPETS)]
+   --self:Print("Returning pet:",id)
+   --self:Print("Chef hat is equipped")
+   return id
+  end
+ end
+ 
  if (self.db.char.mount and IsMounted() and not noFooling) then -- If we have pet assigned to this mount then return it, else continue on and find another.
   if (self.db.char.useglobal) then
    id = self.db.global.mounts[self:GetCurrentlySummonedMount()]
@@ -508,6 +544,28 @@ function BartrubySummonPet:StealthStuff()
  end
 end
 
+function BartrubySummonPet:IsChefHatEquipped()
+ --print(GetSpellInfo(CHEFHATBUFFID))
+ if (UnitBuff("player", GetSpellInfo(CHEFHATBUFFID))) then
+  return true
+ else
+  return false
+ end
+ 
+ local i=1
+ repeat
+   local name, _, _, _, _, _, _, _, _, _, spellId = UnitBuff("player", i)
+   i = i+1
+   if (spellId == 67556) then -- Found the chef's hat
+      return true
+   end
+   if (not name) then
+      return false
+   end
+ until(i > 40)
+ return false
+end
+
 function BartrubySummonPet:DragStop(frame, button)
  if (button == "LeftButton" and frame.isMoving == true) then
   frame.isMoving = false
@@ -572,6 +630,14 @@ function BartrubySummonPet:GenerateOptions()
 	type = "toggle",
 	set = function(i, v) self.db.char.stealth = v self:PlaceIcon() end,
 	get = function(i) return self.db.char.stealth end,
+   },
+   chefhat = {
+    name = "Chef's Hat",
+	desc = "Summon cooking pet when using a chef's hat, must move forward to summon",
+	order = 2.6,
+	type = "toggle",
+	set = function(i, v) self.db.char.chefhat = v end,
+	get = function(i) return self.db.char.chefhat end,
    },
    mount = {
     name = "Mounts",
