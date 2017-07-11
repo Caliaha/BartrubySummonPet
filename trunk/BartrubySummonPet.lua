@@ -1,5 +1,7 @@
 BartrubySummonPet = LibStub("AceAddon-3.0"):NewAddon("BartrubySummonPet", "AceConsole-3.0", "AceEvent-3.0", "AceHook-3.0")
 
+local LQT = LibStub("LibQTip-1.0")
+
 local EXCLUDEDZONES = {}
 EXCLUDEDZONES["Proving Grounds"] = true -- This can probably be removed, I'm fairly sure zones are localized
 
@@ -14,6 +16,7 @@ function BartrubySummonPet:OnInitialize()
  local defaults = {
   global = {
    enabled = true,
+   tooltip = false,
    x = 0,
    y = 0,
    mounts = {
@@ -88,6 +91,7 @@ function BartrubySummonPet:OnInitialize()
  self.configFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("BartrubySummonPet", "BartrubySummonPet")
  
  self:RegisterChatCommand("bartrubysummonpet","HandleIt")
+ self:RegisterChatCommand("bsp","HandleIt")
  self:RegisterEvent("PLAYER_LOGIN")
  self:RegisterEvent("UPDATE_STEALTH", "StealthStuff")
  -- May need to register UPDATE_SUMMONPETS_ACTION
@@ -135,6 +139,73 @@ function BartrubySummonPet:PLAYER_LOGIN()
  frame:SetScript("OnMouseUp", function(self, button) BartrubySummonPet:CheckCursor(button); BartrubySummonPet:DragStop(self, button) end)
  frame:SetScript("OnMouseDown", function(self, button) BartrubySummonPet:DragStart(self, button) end)
  frame:SetScript("OnHide", function(self) BartrubySummonPet:PlaceIcon("hide") end)
+ frame:SetScript("OnEnter", function()
+  if (not self.db.global.tooltip) then return end
+  local tooltip = LQT:Acquire("BartrubySummonPet", 1, "LEFT")
+  self.tooltip = tooltip
+  local battlepet = self:GetBattlepet()
+  local fakebattlepet = self:GetBattlepet(true)
+  if (battlepet == "RANDOMALL") then
+   tooltip:AddLine("Random Pet")
+  elseif (battlepet == "RANDOMFAVORITE") then
+   tooltip:AddLine("Random Favorite Pet")
+  elseif (battlepet ~= nil) then
+   local _, customName, _, _, _, _, _, name = C_PetJournal.GetPetInfoByPetID(battlepet)
+   if (customName) then
+    tooltip:AddLine(customName .. " (" .. name .. ")")
+   else
+    tooltip:AddLine(name)
+   end
+  end
+  if (battlepet == nil) then
+   tooltip:AddLine("No pet will be summoned")
+   if (self.db.char.enabled) then
+    tooltip:AddLine("Active pets will be dismissed")
+   end
+  end
+  if (self.db.char.mount) then
+   if (self.db.char.useglobal) then
+    tooltip:AddLine("Summoning based on current mount (global list)")
+   else
+    tooltip:AddLine("Summoning based on current mount")
+   end
+  end
+  if (self.db.char.chefhat) then
+   tooltip:AddLine("Will summon cooking pet when a Chef's Hat is equipped")
+  end
+  if (self.db.char.stealth) then
+   tooltip:AddLine("Will attempt to dismiss pet while stealthed")
+  end
+  if (self.db.char.multispecs) then
+   tooltip:AddLine("Summoning based on specialization")
+  end
+  if (fakebattlepet == "DRUIDFORMS") then
+   tooltip:AddLine("Summoning based on druid forms")
+  elseif (fakebattlepet == "EQUIPMENTSETS") then
+   tooltip:AddLine("Summoning based on equipment sets")
+  elseif (fakebattlepet == "MINIONPET") then
+   tooltip:AddLine("Summoning based on Hunter/Warlock pets")
+  end
+ 
+ --[[ enabled = true,
+   bttlepet = nil,
+   multispecs = false,
+   stealth = false,
+   mount = false,
+   useglobal = false,
+   chefhat = false, ]]--
+  
+  tooltip:AddLine("Right-click to clear icon and dismiss pet")
+  tooltip:AddLine("Control Right-click to disable/enable this addon for this character")
+  tooltip:AddLine("Alt Left-click to toggle summoning random favorites")
+  tooltip:AddLine("Alt Right-click to toggle summoning random pets")
+  tooltip:AddLine("Shift Left-click to drag the square to another location")
+  tooltip:AddLine("/bsp reset to restore the square to it's original location")
+  tooltip:AddLine("/bsp to bring up the settings for this addon")
+  tooltip:SmartAnchorTo(frame)
+  tooltip:Show()
+ end)
+ frame:SetScript("OnLeave", function() LQT:Release(self.tooltip) self.tooltip = nil end)
  frame:SetMovable(true)
  frame:EnableMouse(true)
  frame:SetFrameStrata("FULLSCREEN")
@@ -154,6 +225,7 @@ function BartrubySummonPet:PLAYER_LOGIN()
 end
 
 function BartrubySummonPet:DBChange()
+ self.bpFrame:ClearAllPoints()
  if (RematchJournal and RematchJournal:IsVisible()) then
   self.bpFrame:SetPoint("TOPLEFT", RematchJournal, "TOPRIGHT", self.db.global.x, self.db.global.y)
  else
@@ -252,21 +324,47 @@ function BartrubySummonPet:HandleIt(input)
   return
  end
  
- if (command == "options") then
-  InterfaceOptionsFrame_OpenToCategory("BartrubySummonPet")
-  InterfaceOptionsFrame_OpenToCategory("BartrubySummonPet")
+ if (command == "favorite") then
+  if (self:GetBattlepet(true) == "RANDOMFAVORITE") then
+   self:SetBattlepet(nil, true)
+   self:Print("Will no longer summon random favorite battle pets")
+  else
+   self:SetBattlepet("RANDOMFAVORITE", true)
+   self:Print("Will summon random favorite battle pets")
+  end
+  self:SummonPet(force)
+  self:PlaceIcon()
+  return
+ end
+ 
+ if (command == "random") then
+  if (self:GetBattlepet(true) == "RANDOMALL") then
+   self:SetBattlepet(nil, true)
+   self:Print("Will no longer summon random battle pets")
+  else
+   self:SetBattlepet("RANDOMALL", true)
+   self:Print("Will summon random battle pets")
+  end
+  self:SummonPet(force)
+  self:PlaceIcon()
+  return
  end
 
- self:Print("Commands are as following:")
- self:Print("reset -> Resets position of battlepet square")
- self:Print("spec -> Toggles summoning based on active specialization")
- self:Print("pets -> Toggles summoning based on current pet or demon (warlocks/hunters only)")
- self:Print("sets -> Toggles summoning based on current equipment set")
- self:Print("druid -> Toggles summoning based on current equipment set")
- self:Print("mount -> Toggles summoning based on current active mount")
- self:Print("global -> Toggles use of global mount list for current character")
- self:Print("pets and sets and druid are exclusive with each other, only one may be active")
- self:Print("Commands must be preceded by /bartrubysummonpet")
+ if (command == "help") then
+  self:Print("Commands are as following:")
+  self:Print("reset -> Resets position of battlepet square")
+  self:Print("spec -> Toggles summoning based on active specialization")
+  self:Print("pets -> Toggles summoning based on current pet or demon (warlocks/hunters only)")
+  self:Print("sets -> Toggles summoning based on current equipment set")
+  self:Print("druid -> Toggles summoning based on current equipment set")
+  self:Print("mount -> Toggles summoning based on current active mount")
+  self:Print("global -> Toggles use of global mount list for current character")
+  self:Print("favorite -> Toggles summoning based on favorite pets")
+  self:Print("random -> Toggles summoning of random pet")
+  self:Print("pets and sets and druid are exclusive with each other, only one may be active")
+  self:Print("Commands must be preceded by /bartrubysummonpet or /bsp")
+  return
+ end
  
  if (self:GetBattlepet(true) == "DRUIDFORMS") then
   self:Print("Currently set to summon battlepets based on currently active druid form")
@@ -291,6 +389,11 @@ function BartrubySummonPet:HandleIt(input)
  if (self.db.char.useglobal) then
   self:Print("Currently using the global mount list")
  end
+ 
+ InterfaceOptionsFrame_OpenToCategory("BartrubySummonPet")
+ InterfaceOptionsFrame_OpenToCategory("BartrubySummonPet")
+ 
+ self:SummonPet()
 end
 
 function BartrubySummonPet:CheckCursor(button)
@@ -302,15 +405,32 @@ function BartrubySummonPet:CheckCursor(button)
   ClearCursor()
   return
  end
+ if (button == "LeftButton") then
+  if (IsAltKeyDown() and not IsControlKeyDown()) then
+   if (self:GetBattlepet(true) == "RANDOMFAVORITE") then
+    self:SetBattlepet(nil, true)
+   else
+    self:SetBattlepet("RANDOMFAVORITE", true)
+   end
+  end
+  self:PlaceIcon()
+ end
  if (button == "RightButton") then
-  if (IsControlKeyDown()) then
+  if (IsControlKeyDown() and not IsAltKeyDown()) then
    if (self.db.char.enabled) then
     self.db.char.enabled = false
    else
     self.db.char.enabled = true
    end
-  else
+  elseif (not IsShiftKeyDown()) then
    self:SetBattlepet(nil)
+  end
+  if (IsAltKeyDown() and not IsControlKeyDown()) then
+  if (self:GetBattlepet(true) == "RANDOMALL") then
+    self:SetBattlepet(nil, true)
+   else
+    self:SetBattlepet("RANDOMALL", true)
+   end
   end
   self:PlaceIcon()
  end
@@ -323,7 +443,7 @@ function BartrubySummonPet:PlaceIcon(register)
   self:RegisterEvent("UNIT_PET", "PlaceIcon")
   self:RegisterEvent("EQUIPMENT_SETS_CHANGED", "PlaceIcon")
   self:RegisterEvent("UPDATE_SHAPESHIFT_FORM", "PlaceIcon")
-  if (self.db.char.mounts) then self:RegisterEvent("UNIT_AURA", "PlaceIcon") end
+  if (self.db.char.mount) then self:RegisterEvent("UNIT_AURA", "PlaceIcon") end
  elseif (register == "hide") then
   self:UnregisterEvent("PET_JOURNAL_LIST_UPDATE") -- Might not be needed?
   self:UnregisterEvent("PLAYER_SPECIALIZATION_CHANGED")
@@ -342,6 +462,7 @@ function BartrubySummonPet:PlaceIcon(register)
  end
  
  local id = self:GetBattlepet()
+ 
  local noPetIcon = "Interface\\ICONS\\Trade_Archaeology_TyrandesFavoriteDoll.blp"
 
  
@@ -349,6 +470,12 @@ function BartrubySummonPet:PlaceIcon(register)
  if (not id) then
   self.bpFrame.texture:SetTexture(noPetIcon);
   return 
+ elseif (id == "RANDOMFAVORITE") then
+  self.bpFrame.texture:SetTexture("Interface\\ICONS\\INV_Misc_Platnumdisks.blp")
+  return
+ elseif (id == "RANDOMALL") then
+  self.bpFrame.texture:SetTexture("Interface\\ICONS\\spell_Shaman_Measuredinsight.blp")
+  return
  end
  
  local _, _, _, _, _, _, _, _, icon, _, _, _, _, _, _, _, _, _ = C_PetJournal.GetPetInfoByPetID(id)
@@ -433,6 +560,12 @@ function BartrubySummonPet:SetBattlepet(id, noFooling)
  local battlepet = nil
  local battlepetName = "NO PET"
  
+ if (id == "RANDOMALL") then
+  battlepetName = "Random Pets"
+ elseif (id == "RANDOMFAVORITE") then
+  battlepetName = "Random Favorite"
+ end
+ 
  if (not noFooling and id) then
   --battlepetName = select(8, C_PetJournal.GetPetInfoByPetID(id))
   local _, customName, _, _, _, _, _, name = C_PetJournal.GetPetInfoByPetID(id)
@@ -498,8 +631,8 @@ function BartrubySummonPet:SetBattlepet(id, noFooling)
  end
 end
 
-function BartrubySummonPet:SummonPet()
- -- Things to check for: other pets (guild, argent tourney) 
+function BartrubySummonPet:SummonPet(force)
+ -- Things to check for: other pets (guild, argent tourney) -Probably not going to bother with this
  
  if (not self.db.char.enabled or InCombatLockdown() or UnitIsDeadOrGhost("player") or IsStealthed() or EXCLUDEDZONES[GetRealZoneText()]) then return end
  --[[if () then return end
@@ -508,9 +641,22 @@ function BartrubySummonPet:SummonPet()
  if () then return end
  ]]--
  local id = self:GetBattlepet()
- --if (EXCLUDEDPETS[id]) then return end
- 
  local currentPet = C_PetJournal.GetSummonedPetGUID()
+ --if (EXCLUDEDPETS[id]) then return end
+ if (id == "RANDOMFAVORITE") then
+  if (currentPet == nil or force) then
+   C_PetJournal.SummonRandomPet(false)
+  end
+  return
+ end
+ if (id == "RANDOMALL" or force) then
+  if (currentPet == nil) then
+   C_PetJournal.SummonRandomPet(true)
+  end
+  return
+ end
+ 
+ 
  if (currentPet == nil and id == nil) then return end -- No pet out and no pet to summon; do nothing
  if (currentPet ~= nil and id == nil) then C_PetJournal.SummonPetByGUID(currentPet) end -- Pet out but should be dismissed; dismiss current pet
  if (currentPet ~= id and id ~= nil) then C_PetJournal.SummonPetByGUID(id) end -- No or incorrect pet is out; summon
@@ -612,15 +758,23 @@ function BartrubySummonPet:GenerateOptions()
     name = "Enabled",
     order = 1,
     type = "toggle",
-    set = function(i, v) self.db.char.enabled = v self:PlaceIcon() end,
+    set = function(i, v) self.db.char.enabled = v self:PlaceIcon() self:SummonPet() end,
     get = function(i) return self.db.char.enabled end
+   },
+   tooltip = {
+    name = "Tooltip",
+	desc = "Show tooltip when mousing over pet icon",
+	order = 1.5,
+	type = "toggle",
+	set = function(i, v) self.db.global.tooltip = v end,
+	get = function(i) return self.db.global.tooltip end,
    },
    specialization = {
     name = "Specializations",
 	desc = "Use different battlepets for each spec",
 	order = 2,
 	type = "toggle",
-	set = function(i, v) self.db.char.multispecs = v self:PlaceIcon() end,
+	set = function(i, v) self.db.char.multispecs = v self:PlaceIcon() self:SummonPet() end,
 	get = function(i) return self.db.char.multispecs end,
    },
    stealth = {
@@ -628,7 +782,7 @@ function BartrubySummonPet:GenerateOptions()
 	desc = "Dismiss pet while stealthed",
 	order = 2.5,
 	type = "toggle",
-	set = function(i, v) self.db.char.stealth = v self:PlaceIcon() end,
+	set = function(i, v) self.db.char.stealth = v self:PlaceIcon() self:SummonPet() end,
 	get = function(i) return self.db.char.stealth end,
    },
    chefhat = {
@@ -636,7 +790,7 @@ function BartrubySummonPet:GenerateOptions()
 	desc = "Summon cooking pet when using a chef's hat, must move forward to summon",
 	order = 2.6,
 	type = "toggle",
-	set = function(i, v) self.db.char.chefhat = v end,
+	set = function(i, v) self.db.char.chefhat = v self:SummonPet() end,
 	get = function(i) return self.db.char.chefhat end,
    },
    mount = {
@@ -644,14 +798,14 @@ function BartrubySummonPet:GenerateOptions()
 	desc = "Use different battlepets while on a mount",
 	order = 3,
 	type = "toggle",
-	set = function(i, v) self.db.char.mount = v self:PlaceIcon() end,
+	set = function(i, v) self.db.char.mount = v self:PlaceIcon() self:SummonPet() end,
 	get = function(i) return self.db.char.mount end,
    },
    mountglobal = {
     name = "Use Global Mount List",
 	order = 4,
 	type = "toggle",
-	set = function(i, v) self.db.char.useglobal = v self:PlaceIcon() end,
+	set = function(i, v) self.db.char.useglobal = v self:PlaceIcon() self:SummonPet() end,
 	get = function(i) return self.db.char.useglobal end
    },
    summonoptions = {
@@ -659,9 +813,9 @@ function BartrubySummonPet:GenerateOptions()
     order = 5,
     type = "select",
     style = "radio",
-    values = { [""] = "Default", ["MINIONPET"] = "Hunter/Warlock Pet", ["EQUIPMENTSETS"] = "Equipment Sets", ["DRUIDFORMS"] = "Druid Forms" },
-    set = function(i, v) if (v == "") then self:SetBattlepet(nil, true) else if (v == "DRUIDFORMS" and select(2,UnitClass("player")) ~= "DRUID") then return end self:SetBattlepet(v, true) end end,
-    get = function(i) local pet = self:GetBattlepet(true) if (pet == "MINIONPET" or pet == "EQUIPMENTSETS" or pet == "DRUIDFORMS") then return pet else return "" end end,
+    values = { [""] = "Default", ["MINIONPET"] = "Hunter/Warlock Pet", ["EQUIPMENTSETS"] = "Equipment Sets", ["DRUIDFORMS"] = "Druid Forms", ["RANDOMFAVORITE"] = "Favorite Pets", ["RANDOMALL"] = "Random Pet" },
+    set = function(i, v) if (v == "") then self:SetBattlepet(nil, true) else if (v == "DRUIDFORMS" and select(2,UnitClass("player")) ~= "DRUID") then return end self:SetBattlepet(v, true) end self:PlaceIcon() self:SummonPet(force) end,
+    get = function(i) local pet = self:GetBattlepet(true) if (pet == "MINIONPET" or pet == "EQUIPMENTSETS" or pet == "DRUIDFORMS" or pet == "RANDOMFAVORITE" or pet == "RANDOMALL") then return pet else return "" end end,
     },
   },
  }
