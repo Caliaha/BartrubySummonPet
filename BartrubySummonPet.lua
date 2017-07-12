@@ -332,7 +332,7 @@ function BartrubySummonPet:HandleIt(input)
    self:SetBattlepet("RANDOMFAVORITE", true)
    self:Print("Will summon random favorite battle pets")
   end
-  self:SummonPet(force)
+  self:SummonPet()
   self:PlaceIcon()
   return
  end
@@ -345,7 +345,7 @@ function BartrubySummonPet:HandleIt(input)
    self:SetBattlepet("RANDOMALL", true)
    self:Print("Will summon random battle pets")
   end
-  self:SummonPet(force)
+  self:SummonPet()
   self:PlaceIcon()
   return
  end
@@ -392,8 +392,6 @@ function BartrubySummonPet:HandleIt(input)
  
  InterfaceOptionsFrame_OpenToCategory("BartrubySummonPet")
  InterfaceOptionsFrame_OpenToCategory("BartrubySummonPet")
- 
- self:SummonPet()
 end
 
 function BartrubySummonPet:CheckCursor(button)
@@ -402,6 +400,7 @@ function BartrubySummonPet:CheckCursor(button)
  if (type == "battlepet") then
   self:SetBattlepet(id)
   self:PlaceIcon()
+  self:SummonPet()
   ClearCursor()
   return
  end
@@ -414,6 +413,7 @@ function BartrubySummonPet:CheckCursor(button)
    end
   end
   self:PlaceIcon()
+  self:SummonPet()
  end
  if (button == "RightButton") then
   if (IsControlKeyDown() and not IsAltKeyDown()) then
@@ -433,6 +433,7 @@ function BartrubySummonPet:CheckCursor(button)
    end
   end
   self:PlaceIcon()
+  self:SummonPet()
  end
 end
 
@@ -631,31 +632,29 @@ function BartrubySummonPet:SetBattlepet(id, noFooling)
  end
 end
 
-function BartrubySummonPet:SummonPet(force)
+function BartrubySummonPet:SummonPet() -- This function gets called everytime we initiate forward movement or toggle on autorun
  -- Things to check for: other pets (guild, argent tourney) -Probably not going to bother with this
  
  if (not self.db.char.enabled or InCombatLockdown() or UnitIsDeadOrGhost("player") or IsStealthed() or EXCLUDEDZONES[GetRealZoneText()]) then return end
- --[[if () then return end
- if () then return end
- if () then return end
- if () then return end
- ]]--
+
  local id = self:GetBattlepet()
  local currentPet = C_PetJournal.GetSummonedPetGUID()
- --if (EXCLUDEDPETS[id]) then return end
+
  if (id == "RANDOMFAVORITE") then
-  if (currentPet == nil or force) then
+  if (currentPet) then -- If we are set to summon a random favorite pet then check if the current pet is a favorite; if not then summon
+   local _, _, _, _, _, _, isFavorite = C_PetJournal.GetPetInfoByPetID(currentPet)
+   if (not isFavorite) then
+    C_PetJournal.SummonRandomPet(false)
+   end
+  else
    C_PetJournal.SummonRandomPet(false)
   end
   return
  end
- if (id == "RANDOMALL" or force) then
-  if (currentPet == nil) then
-   C_PetJournal.SummonRandomPet(true)
-  end
+ if (id == "RANDOMALL") then
+  C_PetJournal.SummonRandomPet(true)
   return
  end
- 
  
  if (currentPet == nil and id == nil) then return end -- No pet out and no pet to summon; do nothing
  if (currentPet ~= nil and id == nil) then C_PetJournal.SummonPetByGUID(currentPet) end -- Pet out but should be dismissed; dismiss current pet
@@ -814,7 +813,7 @@ function BartrubySummonPet:GenerateOptions()
     type = "select",
     style = "radio",
     values = { [""] = "Default", ["MINIONPET"] = "Hunter/Warlock Pet", ["EQUIPMENTSETS"] = "Equipment Sets", ["DRUIDFORMS"] = "Druid Forms", ["RANDOMFAVORITE"] = "Favorite Pets", ["RANDOMALL"] = "Random Pet" },
-    set = function(i, v) if (v == "") then self:SetBattlepet(nil, true) else if (v == "DRUIDFORMS" and select(2,UnitClass("player")) ~= "DRUID") then return end self:SetBattlepet(v, true) end self:PlaceIcon() self:SummonPet(force) end,
+    set = function(i, v) if (v == "") then self:SetBattlepet(nil, true) else if (v == "DRUIDFORMS" and select(2,UnitClass("player")) ~= "DRUID") then return end self:SetBattlepet(v, true) end self:PlaceIcon() self:SummonPet() end,
     get = function(i) local pet = self:GetBattlepet(true) if (pet == "MINIONPET" or pet == "EQUIPMENTSETS" or pet == "DRUIDFORMS" or pet == "RANDOMFAVORITE" or pet == "RANDOMALL") then return pet else return "" end end,
     },
   },
