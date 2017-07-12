@@ -652,7 +652,9 @@ function BartrubySummonPet:SummonPet() -- This function gets called everytime we
   return
  end
  if (id == "RANDOMALL") then
-  C_PetJournal.SummonRandomPet(true)
+  if (not currentPet) then
+   C_PetJournal.SummonRandomPet(true)
+  end
   return
  end
  
