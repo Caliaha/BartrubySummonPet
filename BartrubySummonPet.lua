@@ -326,10 +326,10 @@ function BartrubySummonPet:HandleIt(input)
  
  if (command == "favorite") then
   if (self:GetBattlepet(true) == "RANDOMFAVORITE") then
-   self:SetBattlepet(nil, true)
+   self:SetBattlepet(nil)
    self:Print("Will no longer summon random favorite battle pets")
   else
-   self:SetBattlepet("RANDOMFAVORITE", true)
+   self:SetBattlepet("RANDOMFAVORITE")
    self:Print("Will summon random favorite battle pets")
   end
   self:SummonPet()
@@ -339,10 +339,10 @@ function BartrubySummonPet:HandleIt(input)
  
  if (command == "random") then
   if (self:GetBattlepet(true) == "RANDOMALL") then
-   self:SetBattlepet(nil, true)
+   self:SetBattlepet(nil)
    self:Print("Will no longer summon random battle pets")
   else
-   self:SetBattlepet("RANDOMALL", true)
+   self:SetBattlepet("RANDOMALL")
    self:Print("Will summon random battle pets")
   end
   self:SummonPet()
@@ -407,9 +407,9 @@ function BartrubySummonPet:CheckCursor(button)
  if (button == "LeftButton") then
   if (IsAltKeyDown() and not IsControlKeyDown()) then
    if (self:GetBattlepet(true) == "RANDOMFAVORITE") then
-    self:SetBattlepet(nil, true)
+    self:SetBattlepet(nil)
    else
-    self:SetBattlepet("RANDOMFAVORITE", true)
+    self:SetBattlepet("RANDOMFAVORITE")
    end
   end
   self:PlaceIcon()
@@ -427,9 +427,9 @@ function BartrubySummonPet:CheckCursor(button)
   end
   if (IsAltKeyDown() and not IsControlKeyDown()) then
   if (self:GetBattlepet(true) == "RANDOMALL") then
-    self:SetBattlepet(nil, true)
+    self:SetBattlepet(nil)
    else
-    self:SetBattlepet("RANDOMALL", true)
+    self:SetBattlepet("RANDOMALL")
    end
   end
   self:PlaceIcon()
@@ -565,9 +565,8 @@ function BartrubySummonPet:SetBattlepet(id, noFooling)
   battlepetName = "Random Pets"
  elseif (id == "RANDOMFAVORITE") then
   battlepetName = "Random Favorite"
- end
- 
- if (not noFooling and id) then
+ elseif (id and not noFooling) then
+ --if (not noFooling and id) then
   --battlepetName = select(8, C_PetJournal.GetPetInfoByPetID(id))
   local _, customName, _, _, _, _, _, name = C_PetJournal.GetPetInfoByPetID(id)
   if (customName) then
@@ -814,9 +813,9 @@ function BartrubySummonPet:GenerateOptions()
     order = 5,
     type = "select",
     style = "radio",
-    values = { [""] = "Default", ["MINIONPET"] = "Hunter/Warlock Pet", ["EQUIPMENTSETS"] = "Equipment Sets", ["DRUIDFORMS"] = "Druid Forms", ["RANDOMFAVORITE"] = "Favorite Pets", ["RANDOMALL"] = "Random Pet" },
+    values = { [""] = "Default", ["MINIONPET"] = "Hunter/Warlock Pet", ["EQUIPMENTSETS"] = "Equipment Sets", ["DRUIDFORMS"] = "Druid Forms" },
     set = function(i, v) if (v == "") then self:SetBattlepet(nil, true) else if (v == "DRUIDFORMS" and select(2,UnitClass("player")) ~= "DRUID") then return end self:SetBattlepet(v, true) end self:PlaceIcon() self:SummonPet() end,
-    get = function(i) local pet = self:GetBattlepet(true) if (pet == "MINIONPET" or pet == "EQUIPMENTSETS" or pet == "DRUIDFORMS" or pet == "RANDOMFAVORITE" or pet == "RANDOMALL") then return pet else return "" end end,
+    get = function(i) local pet = self:GetBattlepet(true) if (pet == "MINIONPET" or pet == "EQUIPMENTSETS" or pet == "DRUIDFORMS") then return pet else return "" end end,
     },
   },
  }
