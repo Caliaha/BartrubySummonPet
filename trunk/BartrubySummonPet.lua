@@ -643,16 +643,16 @@ function BartrubySummonPet:SummonPet() -- This function gets called everytime we
   if (currentPet) then -- If we are set to summon a random favorite pet then check if the current pet is a favorite; if not then summon
    local _, _, _, _, _, _, isFavorite = C_PetJournal.GetPetInfoByPetID(currentPet)
    if (not isFavorite) then
-    C_PetJournal.SummonRandomPet(false)
+    C_PetJournal.SummonRandomPet(true)
    end
   else
-   C_PetJournal.SummonRandomPet(false)
+   C_PetJournal.SummonRandomPet(true)
   end
   return
  end
  if (id == "RANDOMALL") then
   if (not currentPet) then
-   C_PetJournal.SummonRandomPet(true)
+   C_PetJournal.SummonRandomPet(false)
   end
   return
  end
