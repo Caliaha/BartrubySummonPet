@@ -1,6 +1,6 @@
-## Interface: 70300
+## Interface: 90105
 ## Title: BartrubySummonPet
-## Version: @project-version@
+## Version: 1.34
 ## Notes: Keeps a specific companion pet summoned per toon
 ## Author: Bartruby of Cairne
 ## OptionalDeps: Ace3, Rematch

@@ -132,8 +132,6 @@ function BartrubySummonPet:PLAYER_LOGIN()
  frame.enabled:SetHeight(32)
  frame.enabled:SetPoint("BOTTOMRIGHT")
  
- frame:RegisterEvent("OnReceiveDrag")
- frame:RegisterEvent("OnMouseUp")
  frame:SetScript("OnShow", function(self) BartrubySummonPet:PlaceIcon("show") end)
  frame:SetScript("OnReceiveDrag", function(self) BartrubySummonPet:CheckCursor(nil) end)
  frame:SetScript("OnMouseUp", function(self, button) BartrubySummonPet:CheckCursor(button); BartrubySummonPet:DragStop(self, button) end)
@@ -634,8 +632,8 @@ end
 function BartrubySummonPet:SummonPet() -- This function gets called everytime we initiate forward movement or toggle on autorun
  -- Things to check for: other pets (guild, argent tourney) -Probably not going to bother with this
  
- if (not self.db.char.enabled or InCombatLockdown() or UnitIsDeadOrGhost("player") or IsStealthed() or EXCLUDEDZONES[GetRealZoneText()]) then return end
-
+ if (not self.db.char.enabled or InCombatLockdown() or UnitIsDeadOrGhost("player") or IsStealthed() or IsFalling() or EXCLUDEDZONES[GetRealZoneText()]) then return end
+ 
  local id = self:GetBattlepet()
  local currentPet = C_PetJournal.GetSummonedPetGUID()
 
@@ -691,18 +689,11 @@ function BartrubySummonPet:StealthStuff()
 end
 
 function BartrubySummonPet:IsChefHatEquipped()
- --print(GetSpellInfo(CHEFHATBUFFID))
- if (UnitBuff("player", GetSpellInfo(CHEFHATBUFFID))) then
-  return true
- else
-  return false
- end
- 
  local i=1
  repeat
-   local name, _, _, _, _, _, _, _, _, _, spellId = UnitBuff("player", i)
+   local name, _, _, _, _, _, _, _, _, spellId = UnitBuff("player", i)
    i = i+1
-   if (spellId == 67556) then -- Found the chef's hat
+   if (spellId == CHEFHATBUFFID) then -- Found the chef's hat
       return true
    end
    if (not name) then
@@ -729,8 +720,8 @@ function BartrubySummonPet:DragStop(frame, button)
 end
 
 function BartrubySummonPet:GetCurrentlyEquippedSet()
- for i=1, GetNumEquipmentSets() do
-  local name, _, _, isEquipped, _, _, _, _, _ = GetEquipmentSetInfo(i)
+ for i=0, C_EquipmentSet.GetNumEquipmentSets() do
+  local name, _, _, isEquipped, _, _, _, _, _ = C_EquipmentSet.GetEquipmentSetInfo(i)
   if (isEquipped) then return name end
  end
  
