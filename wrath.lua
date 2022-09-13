@@ -494,15 +494,17 @@ end
 
 function BartrubySummonPet:GetBattlepet(noFooling)
 -- change id to creatureID
- local id = nil
+	local id = nil
  
- if (self.db.char.mount and IsMounted() and not noFooling) then -- If we have pet assigned to this mount then return it, else continue on and find another.
+	if (self.db.char.mount and IsMounted() and not noFooling) then -- If we have pet assigned to this mount then return it, else continue on and find another.
+		local mountID, mountName = self:GetCurrentlySummonedMount()
+		if not mountID then print("NO MOUNT ID") return end
   if (self.db.char.useglobal) then
-   id = self.db.global.mounts[self:GetCurrentlySummonedMount()]
+   id = self.db.global.mounts[mountID]
   else
-   id = self.db.char.battlepets.mounts[self:GetCurrentlySummonedMount()]
+   id = self.db.char.battlepets.mounts[mountID]
   end
-  if (id) then return id end
+  if id then return id end
  end
  
  if (self.db.char.multispecs) then
@@ -563,14 +565,14 @@ function BartrubySummonPet:SetBattlepet(id, noFooling)
  
  
  if (self.db.char.mount and IsMounted() and not noFooling) then -- Mounted takes priority but don't assign modifiers
-  local mount = self:GetCurrentlySummonedMount()
+  local mountID, mountName = self:GetCurrentlySummonedMount()
   if (self.db.char.useglobal) then
-   self.db.global.mounts[mount] = id
+   self.db.global.mounts[mountID] = creatureID
   else
-   self.db.char.battlepets.mounts[mount] = id
+   self.db.char.battlepets.mounts[mountID] = creatureID
   end
    
-  self:Print("Set", battlepetName, "for", mount)
+  self:Print("Set", battlepetName, "for", mountName)
   return
  end
  
@@ -733,15 +735,14 @@ function BartrubySummonPet:GetCurrentlyEquippedSet()
 end
 
 function BartrubySummonPet:GetCurrentlySummonedMount()
- local mounts = C_MountJournal.GetMountIDs()
- for k, v in pairs(mounts) do
-  local creatureName, _, _, active, _, _, _, _, _, _, _, _ = C_MountJournal.GetMountInfoByID(v)
-  if (active) then
-   return creatureName
-  end
- end
+	for i=1, GetNumCompanions("MOUNT") do
+		local creatureID, creatureName, _, _, issummoned = GetCompanionInfo("MOUNT", i)
+		if issummoned then
+			return creatureID, creatureName
+		end
+	end
  
- return "NOVALIDMOUNTS" -- Probably shouldn't ever happen, idk
+	return false, false
 end
 
 function BartrubySummonPet:GenerateOptions()
