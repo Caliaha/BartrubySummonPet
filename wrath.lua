@@ -5,13 +5,6 @@ local LQT = LibStub("LibQTip-1.0")
 local EXCLUDEDZONES = {}
 EXCLUDEDZONES["Proving Grounds"] = true -- This can probably be removed, I'm fairly sure zones are localized
 
-local CHEFHATBUFFID = 67556
-local PIERRE = 1204
-local RAGNAROS = 297
-COOKINGPETS = { }
-
---local EXCLUDEDPETS = {}
-
 function BartrubySummonPet:OnInitialize()
  local defaults = {
   global = {
@@ -19,24 +12,15 @@ function BartrubySummonPet:OnInitialize()
    tooltip = true,
    x = 0,
    y = 0,
-   mounts = {
-    ['*'] = nil,
-   },
   },
   char = {
    enabled = true,
    battlepet = nil,
    multispecs = false,
    stealth = false,
-   mount = false,
-   useglobal = false,
-   chefhat = false,
    ver = 0,
    battlepets = {
     default = nil,
-	mounts = {
-	 ['*'] = nil,
-	},
 	sets = {
 	 ['*'] = nil,
 	},
@@ -48,31 +32,6 @@ function BartrubySummonPet:OnInitialize()
 	},
 	druidforms = {
 	 ['*'] = nil,
-	},
-   },
-   mounts = { -- Deprecated from here on down
-    ['*'] = {
-	 battlepet = nil,
-	},
-   },
-   specs = {
-    ['*'] = {
-	 battlepet = nil,
-	},
-   },
-   pets = {
-    ['*'] = {
-	 battlepet = nil,
-	},
-   },
-   sets = {
-    ['*'] = {
-	 battlepet = nil,
-	},
-   },
-   druidforms = {
-    ['*'] = {
-	 battlepet = nil,
 	},
    },
   },
@@ -157,16 +116,7 @@ function BartrubySummonPet:PLAYER_LOGIN()
     tooltip:AddLine("Active pets will be dismissed")
    end
   end
-  if (self.db.char.mount) then
-   if (self.db.char.useglobal) then
-    tooltip:AddLine("Summoning based on current mount (global list)")
-   else
-    tooltip:AddLine("Summoning based on current mount")
-   end
-  end
-  if (self.db.char.chefhat) then
-   tooltip:AddLine("Will summon cooking pet when a Chef's Hat is equipped")
-  end
+
   if (self.db.char.stealth) then
    tooltip:AddLine("Will attempt to dismiss pet while stealthed")
   end
@@ -181,14 +131,6 @@ function BartrubySummonPet:PLAYER_LOGIN()
    tooltip:AddLine("Summoning based on Hunter/Warlock pets")
   end
  
- --[[ enabled = true,
-   bttlepet = nil,
-   multispecs = false,
-   stealth = false,
-   mount = false,
-   useglobal = false,
-   chefhat = false, ]]--
-  
   tooltip:AddLine("Right-click to clear icon and dismiss pet")
   tooltip:AddLine("Control Right-click to disable/enable this addon for this character")
   tooltip:AddLine("Alt Left-click to toggle summoning random favorites")
@@ -205,17 +147,6 @@ function BartrubySummonPet:PLAYER_LOGIN()
  frame:SetFrameStrata("FULLSCREEN")
  frame:Show()
  self.bpFrame = frame
- 
- if (Rematch) then
-  RematchJournal:SetScript("OnShow", function(self)
-              BartrubySummonPet.bpFrame:SetParent("RematchJournal")
-			  BartrubySummonPet.bpFrame:SetPoint("TOPLEFT", RematchJournal, "TOPRIGHT", BartrubySummonPet.db.global.x, BartrubySummonPet.db.global.y)
-			 end)
-  RematchJournal:SetScript("OnHide", function(self)
-              BartrubySummonPet.bpFrame:SetParent("PetPaperDollFrameCompanionFrame")
-			  BartrubySummonPet.bpFrame:SetPoint("TOPLEFT", PetPaperDollFrameCompanionFrame, "TOPRIGHT", BartrubySummonPet.db.global.x, BartrubySummonPet.db.global.y)
-			 end)
- end
 end
 
 function BartrubySummonPet:DBChange()
@@ -246,18 +177,6 @@ function BartrubySummonPet:HandleIt(input)
   else
    self.db.char.multispecs = true
    self:Print("Set pet per spec to true.")
-  end
-  self:PlaceIcon()
-  return
- end
- 
- if (command == "mount") then
-  if (self.db.char.mount) then
-   self.db.char.mount = false
-   self:Print("Set summon pet while mounted to false.")
-  else
-   self.db.char.mount = true
-   self:Print("Set summon pet while mounted to true.")
   end
   self:PlaceIcon()
   return
@@ -306,17 +225,6 @@ function BartrubySummonPet:HandleIt(input)
   return
  end
  
- if (command == "global") then
-  if (self.db.char.useglobal) then
-   self:Print("Will no longer use global mount list")
-   self.db.char.useglobal = false
-  else
-   self:Print("Will use global mount list")
-   self.db.char.useglobal = true
-  end
-  self:PlaceIcon()
-  return
- end
  
  if (command == "favorite") then
   if (self:GetBattlepet(true) == "RANDOMFAVORITE") then
@@ -351,8 +259,6 @@ function BartrubySummonPet:HandleIt(input)
   self:Print("pets -> Toggles summoning based on current pet or demon (warlocks/hunters only)")
   self:Print("sets -> Toggles summoning based on current equipment set")
   self:Print("druid -> Toggles summoning based on current equipment set")
-  self:Print("mount -> Toggles summoning based on current active mount")
-  self:Print("global -> Toggles use of global mount list for current character")
   self:Print("favorite -> Toggles summoning based on favorite pets")
   self:Print("random -> Toggles summoning of random pet")
   self:Print("pets and sets and druid are exclusive with each other, only one may be active")
@@ -374,14 +280,6 @@ function BartrubySummonPet:HandleIt(input)
  
  if (self.db.char.multispecs) then
   self:Print("Currently set to summon battlepets based on currently active spec")
- end
- 
- if (self.db.char.mount) then
-  self:Print("Currently set to summon a different battlepet based on mount")
- end
- 
- if (self.db.char.useglobal) then
-  self:Print("Currently using the global mount list")
  end
  
  InterfaceOptionsFrame_OpenToCategory("BartrubySummonPet")
@@ -496,17 +394,6 @@ function BartrubySummonPet:GetBattlepet(noFooling)
 -- change id to creatureID
 	local id = nil
  
-	if (self.db.char.mount and IsMounted() and not noFooling) then -- If we have pet assigned to this mount then return it, else continue on and find another.
-		local mountID, mountName = self:GetCurrentlySummonedMount()
-		if not mountID then print("NO MOUNT ID") return end
-  if (self.db.char.useglobal) then
-   id = self.db.global.mounts[mountID]
-  else
-   id = self.db.char.battlepets.mounts[mountID]
-  end
-  if id then return id end
- end
- 
  if (self.db.char.multispecs) then
   local _, name, _, _, _, _, _ = GetSpecializationInfo(GetSpecialization())
   id = self.db.char.battlepets.specs[name]
@@ -562,20 +449,7 @@ function BartrubySummonPet:SetBattlepet(id, noFooling)
    battlepetName = name
   end ]]--
  end
- 
- 
- if (self.db.char.mount and IsMounted() and not noFooling) then -- Mounted takes priority but don't assign modifiers
-  local mountID, mountName = self:GetCurrentlySummonedMount()
-  if (self.db.char.useglobal) then
-   self.db.global.mounts[mountID] = creatureID
-  else
-   self.db.char.battlepets.mounts[mountID] = creatureID
-  end
-   
-  self:Print("Set", battlepetName, "for", mountName)
-  return
- end
- 
+
  if (self.db.char.multispecs) then
   local currentSpec = GetSpecialization()
   local _, name, _, _, _, _, _ = GetSpecializationInfo(currentSpec)
@@ -694,21 +568,6 @@ function BartrubySummonPet:StealthStuff()
  end
 end
 
-function BartrubySummonPet:IsChefHatEquipped()
- local i=1
- repeat
-   local name, _, _, _, _, _, _, _, _, spellId = UnitBuff("player", i)
-   i = i+1
-   if (spellId == CHEFHATBUFFID) then -- Found the chef's hat
-      return true
-   end
-   if (not name) then
-      return false
-   end
- until(i > 40)
- return false
-end
-
 function BartrubySummonPet:DragStop(frame, button)
  if (button == "LeftButton" and frame.isMoving == true) then
   frame.isMoving = false
@@ -732,17 +591,6 @@ function BartrubySummonPet:GetCurrentlyEquippedSet()
  end
  
  return "NOVALIDEQUIPMENTSETS"
-end
-
-function BartrubySummonPet:GetCurrentlySummonedMount()
-	for i=1, GetNumCompanions("MOUNT") do
-		local creatureID, creatureName, _, _, issummoned = GetCompanionInfo("MOUNT", i)
-		if issummoned then
-			return creatureID, creatureName
-		end
-	end
- 
-	return false, false
 end
 
 function BartrubySummonPet:GenerateOptions()
@@ -781,29 +629,6 @@ function BartrubySummonPet:GenerateOptions()
 	set = function(i, v) self.db.char.stealth = v self:PlaceIcon() self:SummonPet() end,
 	get = function(i) return self.db.char.stealth end,
    },
-   chefhat = {
-    name = "Chef's Hat",
-	desc = "Summon cooking pet when using a chef's hat, must move forward to summon",
-	order = 2.6,
-	type = "toggle",
-	set = function(i, v) self.db.char.chefhat = v self:SummonPet() end,
-	get = function(i) return self.db.char.chefhat end,
-   },
-   mount = {
-    name = "Mounts",
-	desc = "Use different battlepets while on a mount",
-	order = 3,
-	type = "toggle",
-	set = function(i, v) self.db.char.mount = v self:PlaceIcon() self:SummonPet() end,
-	get = function(i) return self.db.char.mount end,
-   },
-   mountglobal = {
-    name = "Use Global Mount List",
-	order = 4,
-	type = "toggle",
-	set = function(i, v) self.db.char.useglobal = v self:PlaceIcon() self:SummonPet() end,
-	get = function(i) return self.db.char.useglobal end
-   },
    summonoptions = {
     name = "Summoning Options",
     order = 5,
@@ -830,10 +655,6 @@ function BartrubySummonPet:UpgradeDB()
   end
   for i,v in pairs(self.db.char.sets) do
    battlepets.sets[i] = v.battlepet
-   v.battlepet = nil
-  end
-  for i,v in pairs(self.db.char.mounts) do
-   battlepets.mounts[i] = v.battlepet
    v.battlepet = nil
   end
   for i,v in pairs(self.db.char.pets) do
