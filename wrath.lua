@@ -42,10 +42,6 @@ function BartrubySummonPet:OnInitialize()
  self.db.RegisterCallback(self, "OnProfileCopied", "DBChange")
  self.db.RegisterCallback(self, "OnProfileReset", "DBChange")
  
- if (self.db.char.ver < 1) then
-  self:UpgradeDB()
- end
- 
  LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("BartrubySummonPet", self:GenerateOptions())
  self.configFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("BartrubySummonPet", "BartrubySummonPet")
  
@@ -102,10 +98,10 @@ function BartrubySummonPet:PLAYER_LOGIN()
   self.tooltip = tooltip
   local battlepet = self:GetBattlepet()
   local fakebattlepet = self:GetBattlepet(true)
-  if (battlepet == "RANDOMALL") then
-   tooltip:AddLine("Random Pet")
-  elseif (battlepet == "RANDOMFAVORITE") then
-   tooltip:AddLine("Random Favorite Pet")
+	if (battlepet == "RANDOMALL") then
+		tooltip:AddLine("Random Pet")
+  --elseif (battlepet == "RANDOMFAVORITE") then
+  -- tooltip:AddLine("Random Favorite Pet")
 	elseif (battlepet ~= nil) then
 		local _, name = self:GetIDFromCreatureID(battlepet)
 		tooltip:AddLine(name)
@@ -133,7 +129,6 @@ function BartrubySummonPet:PLAYER_LOGIN()
  
   tooltip:AddLine("Right-click to clear icon and dismiss pet")
   tooltip:AddLine("Control Right-click to disable/enable this addon for this character")
-  tooltip:AddLine("Alt Left-click to toggle summoning random favorites")
   tooltip:AddLine("Alt Right-click to toggle summoning random pets")
   tooltip:AddLine("Shift Left-click to drag the square to another location")
   tooltip:AddLine("/bsp reset to restore the square to it's original location")
@@ -224,33 +219,19 @@ function BartrubySummonPet:HandleIt(input)
   self:PlaceIcon()
   return
  end
- 
- 
- if (command == "favorite") then
-  if (self:GetBattlepet(true) == "RANDOMFAVORITE") then
-   self:SetBattlepet(nil)
-   self:Print("Will no longer summon random favorite battle pets")
-  else
-   self:SetBattlepet("RANDOMFAVORITE")
-   self:Print("Will summon random favorite battle pets")
-  end
-  self:SummonPet()
-  self:PlaceIcon()
-  return
- end
- 
- if (command == "random") then
-  if (self:GetBattlepet(true) == "RANDOMALL") then
-   self:SetBattlepet(nil)
-   self:Print("Will no longer summon random battle pets")
-  else
-   self:SetBattlepet("RANDOMALL")
-   self:Print("Will summon random battle pets")
-  end
-  self:SummonPet()
-  self:PlaceIcon()
-  return
- end
+
+	if (command == "random") then
+		if (self:GetBattlepet(true) == "RANDOMALL") then
+			self:SetBattlepet(nil)
+			self:Print("Will no longer summon random battle pets")
+		else
+			self:SetBattlepet("RANDOMALL")
+			self:Print("Will summon random battle pets")
+		end
+		self:SummonPet()
+		self:PlaceIcon()
+		return
+	end
 
  if (command == "help") then
   self:Print("Commands are as following:")
@@ -302,37 +283,25 @@ end
 		ClearCursor()
 		return
 	end
- if (button == "LeftButton") then
-  if (IsAltKeyDown() and not IsControlKeyDown()) then
-   if (self:GetBattlepet(true) == "RANDOMFAVORITE") then
-    self:SetBattlepet(nil)
-   else
-    self:SetBattlepet("RANDOMFAVORITE")
-   end
-  end
-  self:PlaceIcon()
-  self:SummonPet()
- end
- if (button == "RightButton") then
-  if (IsControlKeyDown() and not IsAltKeyDown()) then
-   if (self.db.char.enabled) then
-    self.db.char.enabled = false
-   else
-    self.db.char.enabled = true
-   end
-  elseif (not IsShiftKeyDown()) then
-   self:SetBattlepet(nil, true)
-  end
-  if (IsAltKeyDown() and not IsControlKeyDown()) then
-  if (self:GetBattlepet(true) == "RANDOMALL") then
-    self:SetBattlepet(nil, true)
-   else
-    self:SetBattlepet("RANDOMALL")
-   end
-  end
-  self:PlaceIcon()
-  self:SummonPet()
- end
+	if (button == "RightButton") then
+		if (IsControlKeyDown() and not IsAltKeyDown()) then
+			if (self.db.char.enabled) then
+				self.db.char.enabled = false
+			else
+				self.db.char.enabled = true
+			end
+		elseif (IsAltKeyDown() and not IsControlKeyDown()) then
+			if (self:GetBattlepet(true) == "RANDOMALL") then
+				self:SetBattlepet(nil, true)
+			else
+				self:SetBattlepet("RANDOMALL")
+			end
+		elseif (not IsShiftKeyDown()) then
+			self:SetBattlepet(nil, true)
+		end
+		self:PlaceIcon()
+		self:SummonPet()
+	end
 end
 
 function BartrubySummonPet:GetIDFromCreatureID(id)
@@ -377,9 +346,6 @@ function BartrubySummonPet:PlaceIcon(register)
  
  if (not id) then
   self.bpFrame.texture:SetTexture(noPetIcon);
-  return 
- elseif (id == "RANDOMFAVORITE") then
-  self.bpFrame.texture:SetTexture("Interface\\ICONS\\INV_Misc_Platnumdisks.blp")
   return
  elseif (id == "RANDOMALL") then
   self.bpFrame.texture:SetTexture("Interface\\ICONS\\spell_Shaman_Measuredinsight.blp")
@@ -391,16 +357,14 @@ function BartrubySummonPet:PlaceIcon(register)
 end
 
 function BartrubySummonPet:GetBattlepet(noFooling)
--- change id to creatureID
 	local id = nil
- 
  if (self.db.char.multispecs) then
   local _, name, _, _, _, _, _ = GetSpecializationInfo(GetSpecialization())
   id = self.db.char.battlepets.specs[name]
  else
   id = self.db.char.battlepets.default
  end
- 
+
  if (noFooling) then
   return id
  end
@@ -434,20 +398,10 @@ function BartrubySummonPet:SetBattlepet(id, noFooling)
  
  if (id == "RANDOMALL") then
   battlepetName = "Random Pets"
- elseif (id == "RANDOMFAVORITE") then
-  battlepetName = "Random Favorite"
  elseif (id and not noFooling) then
- --if (not noFooling and id) then
-  --battlepetName = select(8, C_PetJournal.GetPetInfoByPetID(id))
-  --local _, customName, _, _, _, _, _, name = C_PetJournal.GetPetInfoByPetID(id)
   
-  creatureID, creatureName = GetCompanionInfo("CRITTER", id)
+  id, creatureName = GetCompanionInfo("CRITTER", id)
   battlepetName = creatureName
-  --[[if (customName) then
-   battlepetName = customName .. " (" .. name .. ")"
-  else
-   battlepetName = name
-  end ]]--
  end
 
  if (self.db.char.multispecs) then
@@ -488,7 +442,7 @@ function BartrubySummonPet:SetBattlepet(id, noFooling)
     self:Print("Set",battlepetName,"for",name)
    end
   else
-   self.db.char.battlepets.default = creatureID
+   self.db.char.battlepets.default = id
   end
  end
 end
@@ -505,39 +459,29 @@ end
 
 function BartrubySummonPet:SummonPet() -- This function gets called everytime we initiate forward movement or toggle on autorun
  -- Things to check for: other pets (guild, argent tourney) -Probably not going to bother with this
-	local id = nil
  
- if (not self.db.char.enabled or InCombatLockdown() or UnitIsDeadOrGhost("player") or IsStealthed() or IsFalling() or EXCLUDEDZONES[GetRealZoneText()]) then return end
+ if (not self.db.char.enabled or InCombatLockdown() or IsMounted() or UnitIsDeadOrGhost("player") or IsStealthed() or IsFalling() or EXCLUDEDZONES[GetRealZoneText()]) then return end
  
- local creatureID, mode = self:GetBattlepet()
+ local creatureID = self:GetBattlepet()
+ local currentPet = self:GetCurrentSummonedPet()
+ 
+	if (creatureID == "RANDOMALL") then
+		if (not currentPet) then
+			local numCompanions = GetNumCompanions("CRITTER")
+			if numCompanions > 0 then
+				CallCompanion("CRITTER", math.random(1, numCompanions))
+			end
+		end
+		return
+	end
+
 	if creatureID then
 		id = self:GetIDFromCreatureID(creatureID)
 	end
  
-	
- local currentPet = self:GetCurrentSummonedPet()
-
- if (id == "RANDOMFAVORITE") then
-  if (currentPet) then -- If we are set to summon a random favorite pet then check if the current pet is a favorite; if not then summon
-   local _, _, _, _, _, _, isFavorite = C_PetJournal.GetPetInfoByPetID(currentPet)
-   if (not isFavorite) then
-    C_PetJournal.SummonRandomPet(true)
-   end
-  else
-   C_PetJournal.SummonRandomPet(true)
-  end
-  return
- end
- if (id == "RANDOMALL") then
-  if (not currentPet) then
-   C_PetJournal.SummonRandomPet(false)
-  end
-  return
- end
- 
- if (currentPet == false and id == nil) then return end -- No pet out and no pet to summon; do nothing
- if (currentPet ~= false and id == nil) then print('Attempting to dismiss pet') DismissCompanion("CRITTER") end -- Pet out but should be dismissed; dismiss current pet
- if (currentPet ~= id and id ~= nil) then print('Attempting to summon', id) CallCompanion("CRITTER", id) end -- No or incorrect pet is out; summon
+	if (currentPet == false and id == nil) then return end -- No pet out and no pet to summon; do nothing
+	if (currentPet ~= false and id == nil) then print('Attempting to dismiss pet') DismissCompanion("CRITTER") end -- Pet out but should be dismissed; dismiss current pet
+	if (currentPet ~= id and id ~= nil) then print('Attempting to summon', id) CallCompanion("CRITTER", id) end -- No or incorrect pet is out; summon
 end
 
 local xB = 0
@@ -640,31 +584,4 @@ function BartrubySummonPet:GenerateOptions()
     },
   },
  }
-end
-
-function BartrubySummonPet:UpgradeDB()
- if (self.db.char.ver < 1) then
-  --self:Print("Upgrading database to version 1")
-  --local tablesToUpgrade = { self.db.char.specs, self.db.char.sets, self.db.char.mounts }
-  local battlepets = self.db.char.battlepets
-  battlepets["default"] = self.db.char.battlepet
-  self.db.char.battlepet = nil
-  for i,v in pairs(self.db.char.specs) do
-   battlepets.specs[i] = v.battlepet
-   v.battlepet = nil
-  end
-  for i,v in pairs(self.db.char.sets) do
-   battlepets.sets[i] = v.battlepet
-   v.battlepet = nil
-  end
-  for i,v in pairs(self.db.char.pets) do
-   battlepets.pets[i] = v.battlepet
-   v.battlepet = nil
-  end
-  for i,v in pairs(self.db.char.druidforms) do
-   battlepets.druidforms[i] = v.battlepet
-   v.battlepet = nil
-  end
-  self.db.char.ver = 1
- end
 end
