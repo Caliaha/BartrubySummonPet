@@ -238,7 +238,7 @@ function BartrubySummonPet:CheckCursor(button)
 	local type, id = GetCursorInfo()
 
 	if (type == "companion") then
-		creatureID, creatureName = GetCompanionInfo("CRITTER", id)
+		local creatureID, creatureName = GetCompanionInfo("CRITTER", id)
 		self:SetBattlepet(id)
 		self:PlaceIcon()
 		self:SummonPet()
