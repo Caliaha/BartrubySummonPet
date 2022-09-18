@@ -4,6 +4,11 @@ local LQT = LibStub("LibQTip-1.0")
 
 local NO_PET_ICON = "Interface\\ICONS\\spell_nature_spiritwolf.blp"
 local RANDOM_PET_ICON = "Interface\\ICONS\\inv_enchant_essencecosmicgreater.blp"
+
+-- List of items that summon companions for quests, we probably shouldn't attempt to summon a pet if one of them exists in inventory
+local QUEST_PET_ITEMS = { }
+QUEST_PET_ITEMS[30803] = true -- Felhound Whistle (Shizz Work)
+
 local EXCLUDEDZONES = {}
 EXCLUDEDZONES["Proving Grounds"] = true -- This can probably be removed, I'm fairly sure zones are localized
 
@@ -396,6 +401,13 @@ function BartrubySummonPet:SetBattlepet(id, noFooling)
 	end
 end
 
+function BartrubySummonPet:QuestCompanionItemExists()
+	for k,_ in pairs(QUEST_PET_ITEMS) do
+		if GetItemCount(k) > 0 then return true end
+	end
+	return false
+end
+
 function BartrubySummonPet:GetCurrentSummonedPet()
 	for i=1, GetNumCompanions("CRITTER") do
 		local creatureID, creatureName, creatureSpellID, icon, issummoned = GetCompanionInfo("CRITTER", i)
@@ -408,7 +420,7 @@ end
 
 function BartrubySummonPet:SummonPet() -- This function gets called everytime we initiate forward movement or toggle on autorun
  -- Things to check for: other pets (guild, argent tourney) -Probably not going to bother with this
-	if (not self.db.char.enabled or InCombatLockdown() or IsMounted() or UnitIsDeadOrGhost("player") or IsStealthed() or IsFalling() or EXCLUDEDZONES[GetRealZoneText()]) then return end
+	if (not self.db.char.enabled or InCombatLockdown() or IsMounted() or UnitIsDeadOrGhost("player") or IsStealthed() or IsFalling() or self:QuestCompanionItemExists() or EXCLUDEDZONES[GetRealZoneText()]) then return end
 	local id = nil
 	local creatureID = self:GetBattlepet()
 	local currentPet = self:GetCurrentSummonedPet()
