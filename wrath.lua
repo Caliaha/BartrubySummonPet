@@ -3,7 +3,7 @@ BartrubySummonPet = LibStub("AceAddon-3.0"):NewAddon("BartrubySummonPet", "AceCo
 local LQT = LibStub("LibQTip-1.0")
 
 local NO_PET_ICON = "Interface\\ICONS\\spell_nature_spiritwolf.blp"
-local RANDOM_PET_ICON = "Interface\\ICONS\\spell_Shaman_Measuredinsight.blp"
+local RANDOM_PET_ICON = "Interface\\ICONS\\inv_enchant_essencecosmicgreater.blp"
 local EXCLUDEDZONES = {}
 EXCLUDEDZONES["Proving Grounds"] = true -- This can probably be removed, I'm fairly sure zones are localized
 
