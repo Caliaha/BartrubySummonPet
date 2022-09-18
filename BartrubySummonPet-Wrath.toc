@@ -1,10 +1,12 @@
 ## Interface: 30400
 ## Title: BartrubySummonPet
-## Version: 1.34
+## Version: @project-version@
 ## Notes: Keeps a specific companion pet summoned per toon
-## Author: Bartruby of Cairne
+## Author: Cali
 ## OptionalDeps: Ace3, Rematch
 ## X-Embeds: Ace3
+## X-Curse-Project-ID: 78138
+## X-WoWI-ID: 24079
 ## SavedVariables: BartrubySummonPetDB
 
 libs\LibStub\LibStub.lua
