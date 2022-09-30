@@ -8,6 +8,9 @@ local RANDOM_PET_ICON = "Interface\\ICONS\\inv_enchant_essencecosmicgreater.blp"
 -- List of items that summon companions for quests, we probably shouldn't attempt to summon a pet if one of them exists in inventory
 local QUEST_PET_ITEMS = { }
 QUEST_PET_ITEMS[30803] = true -- Felhound Whistle (Shizz Work)
+local EXCLUDED_QUESTS = { } -- Added mostly for the ravasaur mount, 20 days is a long time to go without summoning a companion if we checked for the item in our inventory so just check for the quests themselves
+EXCLUDED_QUESTS[13889] = true
+EXCLUDED_QUESTS[13915] = true
 
 local EXCLUDEDZONES = {}
 EXCLUDEDZONES["Proving Grounds"] = true -- This can probably be removed, I'm fairly sure zones are localized
@@ -418,9 +421,17 @@ function BartrubySummonPet:GetCurrentSummonedPet()
 	return false, false, false
 end
 
+function BartrubySummonPet:OnForbiddenQuest()
+	for k, v in pairs(EXCLUDED_QUESTS) do
+		if C_QuestLog.IsOnQuest(k) then
+			return true
+		end
+	end
+end
+
 function BartrubySummonPet:SummonPet() -- This function gets called everytime we initiate forward movement or toggle on autorun
  -- Things to check for: other pets (guild, argent tourney) -Probably not going to bother with this
-	if (not self.db.char.enabled or InCombatLockdown() or IsMounted() or UnitIsDeadOrGhost("player") or IsStealthed() or IsFalling() or self:QuestCompanionItemExists() or EXCLUDEDZONES[GetRealZoneText()]) then return end
+	if (not self.db.char.enabled or InCombatLockdown() or IsMounted() or UnitIsDeadOrGhost("player") or IsStealthed() or IsFalling() or self:QuestCompanionItemExists() or EXCLUDEDZONES[GetRealZoneText()] or self:OnForbiddenQuest()) then return end
 	local id = nil
 	local creatureID = self:GetBattlepet()
 	local currentPet = self:GetCurrentSummonedPet()
