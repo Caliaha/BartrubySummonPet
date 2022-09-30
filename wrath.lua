@@ -8,9 +8,16 @@ local RANDOM_PET_ICON = "Interface\\ICONS\\inv_enchant_essencecosmicgreater.blp"
 -- List of items that summon companions for quests, we probably shouldn't attempt to summon a pet if one of them exists in inventory
 local QUEST_PET_ITEMS = { }
 QUEST_PET_ITEMS[30803] = true -- Felhound Whistle (Shizz Work)
+
 local EXCLUDED_QUESTS = { } -- Added mostly for the ravasaur mount, 20 days is a long time to go without summoning a companion if we checked for the item in our inventory so just check for the quests themselves
-EXCLUDED_QUESTS[13889] = true
-EXCLUDED_QUESTS[13915] = true
+EXCLUDED_QUESTS[13889] = true -- Hungry, Hungry Hatchling
+EXCLUDED_QUESTS[13915] = true -- Hungry, Hungry Hatchling
+EXCLUDED_QUESTS[13903] = true -- Gorishi Grub
+EXCLUDED_QUESTS[13917] = true -- Gorishi Grub
+EXCLUDED_QUESTS[13904] = true -- Poached, Scrambled, Or Raw?
+EXCLUDED_QUESTS[13916] = true -- Poached, Scrambled, Or Raw? (Wowhead says quest is obsolete, but I'll add anyway)
+EXCLUDED_QUESTS[13905] = true -- Searing Roc Feathers
+EXCLUDED_QUESTS[13914] = true -- Searing Roc Feathers
 
 local EXCLUDEDZONES = {}
 EXCLUDEDZONES["Proving Grounds"] = true -- This can probably be removed, I'm fairly sure zones are localized
