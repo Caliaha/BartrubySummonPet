@@ -438,7 +438,7 @@ end
 
 function BartrubySummonPet:SummonPet() -- This function gets called everytime we initiate forward movement or toggle on autorun
  -- Things to check for: other pets (guild, argent tourney) -Probably not going to bother with this
-	if (not self.db.char.enabled or InCombatLockdown() or IsMounted() or UnitIsDeadOrGhost("player") or IsStealthed() or IsFalling() or self:QuestCompanionItemExists() or EXCLUDEDZONES[GetRealZoneText()] or self:OnForbiddenQuest()) then return end
+	if (not self.db.char.enabled or InCombatLockdown() or IsMounted() or UnitIsDeadOrGhost("player") or IsStealthed() or UnitChannelInfo("player") or IsFalling() or self:QuestCompanionItemExists() or EXCLUDEDZONES[GetRealZoneText()] or self:OnForbiddenQuest()) then return end
 	local id = nil
 	local creatureID = self:GetBattlepet()
 	local currentPet = self:GetCurrentSummonedPet()
