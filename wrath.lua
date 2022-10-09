@@ -8,6 +8,7 @@ local RANDOM_PET_ICON = "Interface\\ICONS\\inv_enchant_essencecosmicgreater.blp"
 -- List of items that summon companions for quests, we probably shouldn't attempt to summon a pet if one of them exists in inventory
 local QUEST_PET_ITEMS = { }
 QUEST_PET_ITEMS[30803] = true -- Felhound Whistle (Shizz Work)
+QUEST_PET_ITEMS[32834] = true -- Nether Ray Cage (Hungry Nether Rays)
 
 local EXCLUDED_QUESTS = { } -- Added mostly for the ravasaur mount, 20 days is a long time to go without summoning a companion if we checked for the item in our inventory so just check for the quests themselves
 EXCLUDED_QUESTS[13889] = true -- Hungry, Hungry Hatchling
