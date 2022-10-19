@@ -99,8 +99,10 @@ function BartrubySummonPet:OnInitialize()
 end
 
 function BartrubySummonPet:OnEnable()
- self:SecureHook("MoveForwardStart", "SummonPet")
- self:SecureHook("ToggleAutoRun", "SummonPet")
+	self:SecureHook("MoveForwardStart", "SummonPet")
+	self:SecureHook("ToggleAutoRun", "SummonPet")
+ 	self:SecureHook("MoveAndSteerStart", "SummonPet")
+	self:SecureHook("CameraOrSelectOrMoveStart", "SummonPet")
 end
 
 function BartrubySummonPet:OnDisable()
