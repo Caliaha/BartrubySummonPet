@@ -214,11 +214,11 @@ function BartrubySummonPet:PLAYER_LOGIN()
  
  if (Rematch) then
   RematchJournal:SetScript("OnShow", function(self)
-              BartrubySummonPet.bpFrame:SetParent("RematchJournal")
+              BartrubySummonPet.bpFrame:SetParent(RematchJournal)
 			  BartrubySummonPet.bpFrame:SetPoint("TOPLEFT", RematchJournal, "TOPRIGHT", BartrubySummonPet.db.global.x, BartrubySummonPet.db.global.y)
 			 end)
   RematchJournal:SetScript("OnHide", function(self)
-              BartrubySummonPet.bpFrame:SetParent("PetJournal")
+              BartrubySummonPet.bpFrame:SetParent(PetJournal)
 			  BartrubySummonPet.bpFrame:SetPoint("TOPLEFT", PetJournal, "TOPRIGHT", BartrubySummonPet.db.global.x, BartrubySummonPet.db.global.y)
 			 end)
  end
