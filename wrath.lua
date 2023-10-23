@@ -84,8 +84,12 @@ end
 function BartrubySummonPet:PLAYER_LOGIN()
 	self:UnregisterEvent("PLAYER_LOGIN")
  
-	local frame = CreateFrame("Frame", nil, PetPaperDollFrameCompanionFrame)
-	frame:SetPoint("TOPLEFT", PetPaperDollFrameCompanionFrame, "TOPRIGHT", self.db.global.x, self.db.global.y)
+	if not PetJournal_OnLoad then
+		UIParentLoadAddOn('Blizzard_Collections')
+	end
+	
+	local frame = CreateFrame("Frame", nil, PetJournal)
+	frame:SetPoint("TOPLEFT", PetJournal, "TOPRIGHT", self.db.global.x, self.db.global.y)
 	frame:SetWidth(64)
 	frame:SetHeight(64)
 	frame.texture = frame:CreateTexture(nil, 'BACKGROUND')
