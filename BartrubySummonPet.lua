@@ -88,7 +88,7 @@ function BartrubySummonPet:OnInitialize()
  end
  
  LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("BartrubySummonPet", self:GenerateOptions())
- self.configFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("BartrubySummonPet", "BartrubySummonPet")
+ self.configFrame, self.categoryId = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("BartrubySummonPet", "BartrubySummonPet")
  
  self:RegisterChatCommand("bartrubysummonpet","HandleIt")
  self:RegisterChatCommand("bsp","HandleIt")
@@ -390,8 +390,7 @@ function BartrubySummonPet:HandleIt(input)
   self:Print("Currently using the global mount list")
  end
  
- InterfaceOptionsFrame_OpenToCategory("BartrubySummonPet")
- InterfaceOptionsFrame_OpenToCategory("BartrubySummonPet")
+ Settings.OpenToCategory(self.categoryIdsyl)
 end
 
 function BartrubySummonPet:CheckCursor(button)
@@ -693,13 +692,15 @@ end
 function BartrubySummonPet:IsChefHatEquipped()
  local i=1
  repeat
-   local name, _, _, _, _, _, _, _, _, spellId = UnitBuff("player", i)
+   local aura = C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL")
+   if (not aura) then
+      return false
+   end
+   spellId = aura["spellId"]
+   
    i = i+1
    if (spellId == CHEFHATBUFFID) then -- Found the chef's hat
       return true
-   end
-   if (not name) then
-      return false
    end
  until(i > 40)
  return false
