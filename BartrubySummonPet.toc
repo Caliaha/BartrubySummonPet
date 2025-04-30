@@ -1,4 +1,4 @@
-## Interface: 110002
+## Interface: 110105
 ## Title: BartrubySummonPet
 ## Version: @project-version@
 ## Notes: Keeps a specific companion pet summoned per toon

@@ -5,6 +5,14 @@ local LQT = LibStub("LibQTip-1.0")
 local EXCLUDEDZONES = {}
 EXCLUDEDZONES["Proving Grounds"] = true -- This can probably be removed, I'm fairly sure zones are localized
 
+local ExcludedQuests = {
+	85263, -- Boomball
+	89318, -- Bold for a Kobold
+	89319, -- The Wondrous Weave
+	89320, -- The Eager Engineer
+	89321, -- Recreation for Rooks
+}
+
 local CHEFHATBUFFID = 67556
 local PIERRE = 1204
 local RAGNAROS = 297
@@ -630,10 +638,20 @@ function BartrubySummonPet:SetBattlepet(id, noFooling)
  end
 end
 
+function BartrubySummonPet:CheckQuests()
+	for i, v in ipairs(ExcludedQuests) do
+		if C_QuestLog.IsOnQuest(v) then
+			return true
+		end
+	end
+
+	return false
+end
+
 function BartrubySummonPet:SummonPet() -- This function gets called everytime we initiate forward movement or toggle on autorun
  -- Things to check for: other pets (guild, argent tourney) -Probably not going to bother with this
  
- if (not self.db.char.enabled or InCombatLockdown() or UnitIsDeadOrGhost("player") or IsStealthed() or UnitCastingInfo("player") or UnitChannelInfo("player") or IsFalling() or EXCLUDEDZONES[GetRealZoneText()]) then return end
+ if (not self.db.char.enabled or InCombatLockdown() or UnitIsDeadOrGhost("player") or IsStealthed() or UnitCastingInfo("player") or UnitChannelInfo("player") or IsFalling() or EXCLUDEDZONES[GetRealZoneText()] or self:CheckQuests() ) then return end
  
  local id = self:GetBattlepet()
  local currentPet = C_PetJournal.GetSummonedPetGUID()
