@@ -708,6 +708,8 @@ function BartrubySummonPet:StealthStuff()
 end
 
 function BartrubySummonPet:IsChefHatEquipped()
+	if (InCombatLockdown()) then return false end
+
  local i=1
  repeat
    local aura = C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL")
@@ -741,6 +743,7 @@ function BartrubySummonPet:DragStop(frame, button)
 end
 
 function BartrubySummonPet:GetCurrentlyEquippedSet()
+	if (InCombatLockdown()) then return "NOVALIDEQUIPMENTSETS" end
  for i=0, C_EquipmentSet.GetNumEquipmentSets() do
   local name, _, _, isEquipped, _, _, _, _, _ = C_EquipmentSet.GetEquipmentSetInfo(i)
   if (isEquipped) then return name end
