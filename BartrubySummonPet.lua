@@ -13,6 +13,21 @@ local ExcludedQuests = {
 	89321, -- Recreation for Rooks
 }
 
+local ExcludedItems = {
+	18597, -- orcish-orphan-whistle 
+	18598, -- Human Orphan Whistle
+	31880, -- blood-elf-orphan-whistle
+	31881, -- draenei-orphan-whistle
+	46396, -- wolvar-orphan-whistle
+	46397, -- oracle-orphan-whistle
+	164772, -- kul-tiran-orphan-whistle
+	239689, -- kobold-orphan-whistle
+	240196, -- arathi-orphan-whistle
+	240197, -- nerubian-orphan-whistle
+	240198, -- goblin-orphan-whistle
+	242242, -- khaz-algar-orphan-whistle
+}
+
 local CHEFHATBUFFID = 67556
 local PIERRE = 1204
 local RAGNAROS = 297
@@ -641,6 +656,12 @@ end
 function BartrubySummonPet:CheckQuests()
 	for i, v in ipairs(ExcludedQuests) do
 		if C_QuestLog.IsOnQuest(v) then
+			return true
+		end
+	end
+	
+	for i, v in ipairs(ExcludedItems) do
+		if GetItemCount(v) > 0 then
 			return true
 		end
 	end
