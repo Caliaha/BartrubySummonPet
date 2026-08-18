@@ -137,7 +137,7 @@ function BartrubySummonPet:PLAYER_LOGIN()
  self:UnregisterEvent("PLAYER_LOGIN")
  
  if not PetJournal_OnLoad then
-  UIParentLoadAddOn('Blizzard_Collections')
+  LoadAddOnWithErrorHandling('Blizzard_Collections')
  end
  
  local frame = CreateFrame("Frame", nil, PetJournal)
